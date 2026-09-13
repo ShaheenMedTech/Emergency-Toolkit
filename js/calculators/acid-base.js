@@ -476,31 +476,7 @@ function calculateABG() {
         .textContent = compensation;
 
 
-    // ----------------------------
-    // Oxygen
-    // ----------------------------
-
-    let oxygen;
-
-    if (pO2 < 60) {
-
-        oxygen =
-            "Low PaO₂";
-
-    }
-    else if (pO2 <= 100) {
-
-        oxygen =
-            "Within typical range";
-
-    }
-    else {
-
-        oxygen =
-            "Elevated PaO₂";
-    }
-
-
     document.getElementById("abgOxygen")
-        .textContent = oxygen;
+        .textContent =
+        `PaO₂: ${pO2} mmHg — PaO₂ alone is not a standalone oxygenation assessment. Interpret with appropriate clinical and contextual information, including FiO₂, oxygen-delivery device, sample type, and local protocol.`;
 }
