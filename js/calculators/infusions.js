@@ -473,14 +473,30 @@ function calculateInfusion(modal) {
         mlPerMin * 60;
 
 
+    if ([concentrationMgMl, requiredMgPerMin, mlPerMin, mlPerHour]
+        .some(value => !Number.isFinite(value) || value <= 0)) {
+        clearInfusionResults(modal);
+        alert("The entered values produce a result outside the calculator's supported numeric range. Please check the values and units.");
+        return;
+    }
+
+
     modal.querySelector("#infusionConcentration")
         .textContent =
-        `${concentrationMgMl.toFixed(3)} mg/mL`;
+        `${formatInfusionValue(concentrationMgMl, 3)} mg/mL`;
 
 
     modal.querySelector("#infusionRate")
         .textContent =
-        `${mlPerHour.toFixed(2)} mL/hr`;
+        `${formatInfusionValue(mlPerHour, 2)} mL/hr`;
+}
+
+
+function formatInfusionValue(value, decimalPlaces) {
+    const fixed = value.toFixed(decimalPlaces);
+    return value > 0 && fixed === (0).toFixed(decimalPlaces)
+        ? value.toExponential(5).replace(/\.?0+e/, "e")
+        : fixed;
 }
 
 
