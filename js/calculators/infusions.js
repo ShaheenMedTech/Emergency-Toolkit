@@ -407,6 +407,8 @@ function calculateInfusion(modal) {
 
     if (invalidField) {
 
+        clearInfusionResults(modal);
+
         const [label, value, min, max] = invalidField;
 
         if (!Number.isFinite(value)) {
@@ -482,6 +484,12 @@ function calculateInfusion(modal) {
 }
 
 
+function clearInfusionResults(modal) {
+    modal.querySelector("#infusionConcentration").textContent = "—";
+    modal.querySelector("#infusionRate").textContent = "—";
+}
+
+
 function resetInfusions(modal) {
 
     modal
@@ -500,12 +508,5 @@ function resetInfusions(modal) {
         "mcg/kg/min";
 
 
-    modal.querySelector("#infusionConcentration")
-        .textContent =
-        "—";
-
-
-    modal.querySelector("#infusionRate")
-        .textContent =
-        "—";
+    clearInfusionResults(modal);
 }

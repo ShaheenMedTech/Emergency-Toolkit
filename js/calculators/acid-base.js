@@ -294,10 +294,7 @@ function openABGCalculator() {
                 input.value = "";
             });
 
-            document.getElementById("abgAG").textContent = "—";
-            document.getElementById("abgPrimary").textContent = "—";
-            document.getElementById("abgCompensation").textContent = "—";
-            document.getElementById("abgOxygen").textContent = "—";
+            clearABGResults();
         });
 
 }
@@ -306,6 +303,14 @@ function openABGCalculator() {
 // ========================================
 // ABG Analysis
 // ========================================
+
+function clearABGResults() {
+    document.getElementById("abgAG").textContent = "—";
+    document.getElementById("abgPrimary").textContent = "—";
+    document.getElementById("abgCompensation").textContent = "—";
+    document.getElementById("abgOxygen").textContent = "—";
+}
+
 
 function calculateABG() {
 
@@ -351,6 +356,8 @@ function calculateABG() {
     );
 
     if (invalidField) {
+
+        clearABGResults();
 
         const [label, value, min, max] = invalidField;
 

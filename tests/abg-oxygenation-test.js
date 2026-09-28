@@ -113,7 +113,30 @@ for (const pO2 of ["", 0, 501]) {
     test.context.calculateABG();
 
     assert.equal(test.alerts.length, 1, `PaO₂ ${pO2} should be rejected`);
-    assert.equal(test.elements.get("abgOxygen").textContent, "");
+    assert.equal(test.elements.get("abgOxygen").textContent, "—");
+}
+
+for (const [id, outOfRange] of [
+    ["abgPH", "8.1"], ["abgPCO2", "151"], ["abgHCO3", "61"],
+    ["abgPaO2", "501"], ["abgNa", "221"], ["abgCl", "181"]
+]) {
+    for (const invalidValue of ["", outOfRange, "NaN"]) {
+        const { context, elements, alerts } = calculateWithPaO2(80);
+        const outputIds = ["abgAG", "abgPrimary", "abgCompensation", "abgOxygen"];
+        const previous = outputIds.map(outputId => elements.get(outputId).textContent);
+        assert.ok(previous.every(value => value !== "" && value !== "—"));
+        const original = elements.get(id).value;
+        elements.get(id).value = invalidValue;
+        context.calculateABG();
+        assert.equal(alerts.length, 1);
+        for (const outputId of outputIds) {
+            assert.equal(elements.get(outputId).textContent, "—", `${id}: ${outputId}`);
+        }
+        assert.equal(elements.get(id).value, invalidValue);
+        elements.get(id).value = original;
+        context.calculateABG();
+        assert.deepEqual(outputIds.map(outputId => elements.get(outputId).textContent), previous);
+    }
 }
 
 {
@@ -157,10 +180,13 @@ for (const pO2 of ["", 0, 501]) {
     vm.runInContext(source, context);
     context.openABGCalculator();
 
-    elements.get("abgOxygen").textContent = "previous result";
+    const outputIds = ["abgAG", "abgPrimary", "abgCompensation", "abgOxygen"];
+    for (const id of outputIds) elements.get(id).textContent = "previous result";
+    for (const id of inputIds) elements.get(id).value = "80";
     elements.get("resetABG").handlers.click();
 
-    assert.equal(elements.get("abgOxygen").textContent, "—");
+    for (const id of outputIds) assert.equal(elements.get(id).textContent, "—");
+    for (const id of inputIds) assert.equal(elements.get(id).value, "");
 }
 
 console.log("PASS — ABG oxygenation regression tests");
