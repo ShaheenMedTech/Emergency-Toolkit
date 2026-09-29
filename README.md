@@ -4,6 +4,10 @@
 
 A lightweight, browser-based clinical reference toolkit designed for rapid point-of-care use in Emergency Medicine.
 
+## Live Demo
+
+https://shaheenmedtech.github.io/Emergency-Toolkit/
+
 ## Overview
 
 Emergency Toolkit brings together clinical calculators and emergency-management quick references in a single interface.
