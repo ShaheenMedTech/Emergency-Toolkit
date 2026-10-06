@@ -1,0 +1,53 @@
+name: Emergency Toolkit Tests
+
+on:
+  push:
+    branches:
+      - main
+      - v1.3-development
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Regression and smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Run structural smoke test
+        run: python tests/smoke-test.py
+
+      - name: Run JavaScript regression tests
+        shell: bash
+        run: |
+          shopt -s nullglob
+          tests=(tests/*-test.js)
+
+          if ((${#tests[@]} == 0)); then
+            echo "No JavaScript regression tests found."
+            exit 0
+          fi
+
+          for test_file in "${tests[@]}"; do
+            echo "::group::${test_file}"
+            node "${test_file}"
+            echo "::endgroup::"
+          done
