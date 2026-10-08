@@ -271,6 +271,18 @@ function clearShockIndexResults() {
 }
 
 
+function formatShockIndex(si) {
+    const rounded = si.toFixed(2);
+    // Keep a value below a threshold visibly below it after rounding.
+    const crossedThreshold = [0.5, 0.7, 0.9, 1.0].find(threshold =>
+        si < threshold && Number(rounded) >= threshold
+    );
+    return crossedThreshold === undefined
+        ? rounded
+        : `<${crossedThreshold.toFixed(2)}`;
+}
+
+
 function calculateShockIndex() {
 
     const hr = Number(
@@ -314,7 +326,7 @@ function calculateShockIndex() {
 
     const si = hr / sbp;
 
-    const roundedSI = si.toFixed(2);
+    const roundedSI = formatShockIndex(si);
 
 
     document.getElementById("shockTotal")

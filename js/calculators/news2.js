@@ -580,6 +580,13 @@ if (invalidField) {
 }
 
 
+    if (!Number.isInteger(spo2)) {
+        clearNEWS2Results();
+        alert("SpO₂ must be a whole percentage. Fractional values are not supported.");
+        return;
+    }
+
+
     const respiratoryScore =
         scoreRespiratoryRate(resp);
 
