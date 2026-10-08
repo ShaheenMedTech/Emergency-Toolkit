@@ -51,3 +51,22 @@ jobs:
             node "${test_file}"
             echo "::endgroup::"
           done
+
+      - name: Check JavaScript syntax
+        run: |
+          python - <<'PYTHON'
+          import pathlib, re, subprocess
+          for directory in ("js", "tests"):
+              for path in pathlib.Path(directory).rglob("*.js"):
+                  subprocess.run(["node", "--check", str(path)], check=True)
+          for path in pathlib.Path("tests").glob("*.html"):
+              for script in re.findall(r"<script\b[^>]*>(.*?)</script>", path.read_text(), re.S):
+                  if script.strip():
+                      subprocess.run(["node", "--check"], input=script, text=True, check=True)
+          PYTHON
+
+      - name: Test Chromium runner failure handling
+        run: python tests/chromium-runner-test.py
+
+      - name: Run ABG Chromium regressions
+        run: python tests/chromium-ci-test.py
