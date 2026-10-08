@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ABG baseline fixtures — not clinical acceptance</title>
+<body>
+<pre id="verification">RUNNING</pre>
+<script src="fixtures/abg-baseline-fixtures.js"></script>
+<script src="../js/calculators/acid-base.js"></script>
+<script>
+const fixtures = ABGBaselineFixtures;
+const outputs = ["abgAG", "abgPrimary", "abgCompensation", "abgOxygen"];
+const alerts = [];
+window.alert = message => alerts.push(message);
+const get = id => document.getElementById(id);
+const assert = (condition, message) => { if (!condition) throw Error(message); };
+const cleared = () => assert(outputs.every(id => get(id).textContent.trim() === "—"), "All results must clear");
+const set = (inputs, event) => {
+    fixtures.ids.forEach((id, i) => {
+        get(id).value = inputs[i];
+        if (event) {
+            get(id).dispatchEvent(new Event(event, { bubbles: true })); cleared();
+            assert(get(id).value === inputs[i], "Edit must preserve input");
+        }
+    });
+};
+const calculate = () => get("calculateABG").click();
+const limitation = "PaO₂ alone is not a standalone oxygenation assessment. Interpret with appropriate clinical and contextual information, including FiO₂, oxygen-delivery device, sample type, and local protocol.";
+try {
+    openABGCalculator();
+    let exampleTransitions = 0;
+    for (const fixture of fixtures.examples) for (const event of ["input", "change"]) {
+        set(fixtures.examples[6].inputs); calculate();
+        assert(outputs.every(id => get(id).textContent.trim() !== "—"), "Start with populated result");
+        alerts.length = 0; set(fixture.inputs, event); cleared();
+        assert(alerts.length === 0, "Edits must not validate or calculate"); calculate();
+        if (fixture.alert) {
+            assert(alerts.length === 1 && alerts[0] === fixture.alert, "Baseline validation failure"); cleared();
+        } else {
+            assert(alerts.length === 0, "Accepted baseline inputs");
+            assert(get("abgAG").textContent === fixture.gap, `${fixture.id} baseline gap`);
+            assert(get("abgPrimary").textContent === fixture.primary, `${fixture.id} BASELINE ONLY primary label`);
+            assert(get("abgCompensation").textContent === fixture.compensation, `${fixture.id} BASELINE ONLY compensation`);
+            assert(get("abgOxygen").textContent === `PaO₂: ${fixture.inputs[3]} mmHg — ${limitation}`, "Preserve oxygenation limitation");
+        }
+        assert(fixtures.ids.every((id, i) => get(id).value === fixture.inputs[i]), "Calculation must preserve entries");
+        exampleTransitions++;
+    }
+    for (const row of fixtures.primaryBoundaries) {
+        alerts.length = 0;
+        set([...row.slice(0, 3), "80", "140", "105"], "input"); calculate();
+        assert(alerts.length === 0, "Accepted synthetic baseline inputs");
+        assert(get("abgPrimary").textContent === row[3], "Synthetic primary boundary BASELINE ONLY");
+    }
+    set(fixtures.examples[6].inputs); calculate(); get("resetABG").click(); cleared();
+    assert(fixtures.ids.every(id => get(id).value === ""), "Reset empties all inputs");
+    set(fixtures.examples[6].inputs); calculate(); get("closeABG").click();
+    assert(get("abgModal") === null, "Close removes modal");
+    openABGCalculator(); cleared();
+    assert(fixtures.ids.every(id => get(id).value === ""), "Reopening clears inputs");
+    set(fixtures.examples[6].inputs); alerts.length = 0; calculate();
+    assert(get("abgCompensation").textContent === fixtures.examples[6].compensation, "Recalculate after reopening");
+    set(fixtures.examples[8].inputs, "change"); calculate(); cleared();
+    assert(alerts.length === 1, "Invalid reopened calculation clears results");
+    get("closeABG").click();
+    get("verification").textContent = JSON.stringify({ status: "PASS", viewport: [innerWidth, innerHeight], exampleTransitions,
+        primaryBoundaries: fixtures.primaryBoundaries.length,
+        warning: "E1–E9 and synthetic labels are baseline regressions ONLY; all clinical policies remain PENDING",
+        checks: "Input/change invalidation, preserved entries, explicit calculation, oxygenation limitation, reset and reopen" });
+} catch (error) {
+    get("verification").textContent = JSON.stringify({ status: "FAIL", message: error.message, stack: error.stack });
+}
+</script>
+</body>
+</html>
