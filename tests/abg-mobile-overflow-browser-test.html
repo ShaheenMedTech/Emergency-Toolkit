@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ABG populated result layout regression</title>
+<body>
+<pre id="verification">RUNNING</pre>
+<script src="fixtures/abg-baseline-fixtures.js"></script>
+<iframe id="app" title="Emergency Toolkit layout test" height="900" src="../index.html"></iframe>
+<script>
+const frame = document.getElementById("app");
+const assert = (condition, message) => { if (!condition) throw Error(message); };
+frame.addEventListener("load", () => {
+    try {
+        const win = frame.contentWindow, doc = frame.contentDocument;
+        const fixture = ABGBaselineFixtures.examples.find(item => item.id === "E8");
+        const checks = [];
+        win.openABGCalculator();
+        ABGBaselineFixtures.ids.forEach((id, i) => { doc.getElementById(id).value = fixture.inputs[i]; });
+        doc.getElementById("calculateABG").click();
+        for (const width of [390, 320, 360, 1280]) for (const theme of ["light", "dark"]) {
+            frame.width = String(width);
+            doc.body.classList.toggle("dark-mode", theme === "dark");
+            const modal = doc.querySelector(".abg-modal");
+            const result = doc.getElementById("abgCompensation");
+            const context = `${width}px ${theme}`;
+            assert(win.innerWidth === width, `${context}: actual viewport width`);
+            assert(modal.scrollWidth <= modal.clientWidth, `${context}: modal overflow ${modal.scrollWidth}/${modal.clientWidth}`);
+            assert(doc.getElementById("abgAG").textContent === fixture.gap, `${context}: unchanged gap`);
+            assert(doc.getElementById("abgPrimary").textContent === fixture.primary, `${context}: unchanged primary label`);
+            assert(result.textContent === fixture.compensation, `${context}: exact Winter string preserved`);
+            assert(modal.getAttribute("role") === "dialog" && doc.getElementById(modal.getAttribute("aria-labelledby")), `${context}: named accessible dialog`);
+            const style = win.getComputedStyle(result);
+            assert(style.display !== "none" && style.visibility === "visible" && style.userSelect !== "none", `${context}: visible selectable text`);
+            const range = doc.createRange(); range.selectNodeContents(result);
+            const selection = win.getSelection(); selection.removeAllRanges(); selection.addRange(range);
+            assert(selection.toString() === fixture.compensation, `${context}: complete text remains selectable`);
+            const bounds = modal.getBoundingClientRect();
+            for (const rect of range.getClientRects()) {
+                assert(rect.left >= bounds.left && rect.right <= bounds.right, `${context}: text must fit horizontally`);
+                assert(rect.height > 0, `${context}: visible text fragments`);
+            }
+            selection.removeAllRanges();
+            checks.push({ width, theme, clientWidth: modal.clientWidth, scrollWidth: modal.scrollWidth });
+        }
+        doc.getElementById("closeABG").click();
+        document.getElementById("verification").textContent = JSON.stringify({ status: "PASS", checks,
+            scope: "E8 baseline only; clinical policy remains PENDING", preserved: "Exact Winter text, calculations, named dialog and text selection" });
+    } catch (error) {
+        document.getElementById("verification").textContent = JSON.stringify({ status: "FAIL", message: error.message });
+    }
+});
+</script>
+</body>
+</html>
