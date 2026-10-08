@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const fixtures = require("./fixtures/abg-baseline-fixtures");
+const { observeRawGap, assertRawGap } = require("./helpers/abg-numerical-reference");
 const elements = new Map();
 const outputs = ["abgAG", "abgPrimary", "abgCompensation", "abgOxygen"];
 for (const id of [...fixtures.ids, ...outputs]) elements.set(id, { value: "", textContent: "" });
@@ -10,10 +11,11 @@ const alerts = [];
 const context = { document: { getElementById: id => elements.get(id) }, alert: message => alerts.push(message) };
 vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "../js/calculators/acid-base.js"), "utf8"), context);
+const rawGaps = observeRawGap(context);
 const get = id => elements.get(id);
 const calculate = inputs => {
     fixtures.ids.forEach((id, i) => get(id).value = inputs[i]);
-    alerts.length = 0; context.calculateABG();
+    alerts.length = 0; rawGaps.length = 0; context.calculateABG();
 };
 const limitation = "PaO₂ alone is not a standalone oxygenation assessment. Interpret with appropriate clinical and contextual information, including FiO₂, oxygen-delivery device, sample type, and local protocol.";
 
@@ -38,14 +40,22 @@ function winterReference(hco3) {
     const h = scale(decimal(hco3), 3n);
     return [scale(add(h, [12n, 1n]), 1n, 2n), scale(add(h, [20n, 1n]), 1n, 2n)];
 }
-function oneDecimal([n, d]) {
-    const negative = n < 0n;
-    const magnitude = negative ? -n : n;
-    const tenths = (magnitude * 20n + d) / (2n * d);
-    return `${negative && tenths ? "-" : ""}${tenths / 10n}.${tenths % 10n}`;
-}
+// Frozen current-display snapshots are not an exact-decimal rounding policy.
+const gapDisplays = {
+    "140/100/12": "28.0", "140/90/48": "2.0", "140/105/27": "8.0",
+    "140/100/21.8": "18.2", "140/105/12": "23.0", "140/110/15.1": "14.9",
+    "140/105/21.9": "13.1", "140/105/21.999999": "13.0", "140/105/22": "13.0",
+    "140/105/22.000001": "13.0", "140/105/25.999999": "9.0", "140/105/26": "9.0",
+    "140/105/26.000001": "9.0", "140/105/24": "11.0", "140/105/20": "15.0",
+    "140/105/30": "5.0", "140/105/1": "34.0", "140/105/9.25": "25.8",
+    "140/105/15.1": "19.9", "140/105/15.25": "19.8", "140/105/21.8": "13.2"
+};
 function checkGap(inputs) {
-    assert.equal(get("abgAG").textContent, oneDecimal(gapReference(inputs)), "Independent exact anion-gap reference");
+    assert.equal(rawGaps.length, 1, "Observe exactly one raw gap before formatting");
+    assertRawGap(rawGaps[0], gapReference(inputs), [inputs[4], inputs[5], inputs[2]]);
+    const snapshot = gapDisplays[[inputs[4], inputs[5], inputs[2]].join("/")];
+    assert.notEqual(snapshot, undefined, "Explicit current-display snapshot required");
+    assert.equal(get("abgAG").textContent, snapshot, "BASELINE DISPLAY ONLY — not clinical rounding approval");
 }
 function checkWinterMath(hco3) {
     const match = /interval ([\d.e+-]+)–([\d.e+-]+) mmHg \(inclusive\)/.exec(get("abgCompensation").textContent);

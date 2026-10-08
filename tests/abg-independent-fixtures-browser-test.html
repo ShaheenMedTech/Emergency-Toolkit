@@ -52,6 +52,21 @@ try {
         assert(alerts.length === 0, "Accepted synthetic baseline inputs");
         assert(get("abgPrimary").textContent === row[3], "Synthetic primary boundary BASELINE ONLY");
     }
+    // Display snapshots only: decimal mathematics and binary error are checked
+    // independently in Node. These values do not approve a clinical rounding policy.
+    const numericalDisplays = [
+        ["140", "105", "21.15", "13.8"],
+        ["140", "105", "21.149999999999995", "13.9"],
+        ["80", "80", "1.25", "-1.3"],
+        ["140", "119", "20.99999999999997", "0.0"],
+        ["140", "119", "21.00000000000003", "-0.0"],
+        ["220", "40", "1", "179.0"],
+        ["80", "180", "60", "-160.0"]
+    ];
+    for (const [na, cl, hco3, display] of numericalDisplays) {
+        alerts.length = 0; set(["7.4", "40", hco3, "80", na, cl], "input"); calculate();
+        assert(alerts.length === 0 && get("abgAG").textContent === display, "Current binary display snapshot ONLY");
+    }
     set(fixtures.examples[6].inputs); calculate(); get("resetABG").click(); cleared();
     assert(fixtures.ids.every(id => get(id).value === ""), "Reset empties all inputs");
     set(fixtures.examples[6].inputs); calculate(); get("closeABG").click();
@@ -64,7 +79,7 @@ try {
     assert(alerts.length === 1, "Invalid reopened calculation clears results");
     get("closeABG").click();
     get("verification").textContent = JSON.stringify({ status: "PASS", viewport: [innerWidth, innerHeight], exampleTransitions,
-        primaryBoundaries: fixtures.primaryBoundaries.length,
+        primaryBoundaries: fixtures.primaryBoundaries.length, numericalDisplayCases: numericalDisplays.length,
         warning: "E1–E9 and synthetic labels are baseline regressions ONLY; all clinical policies remain PENDING",
         checks: "Input/change invalidation, preserved entries, explicit calculation, oxygenation limitation, reset and reopen" });
 } catch (error) {
