@@ -5466,6 +5466,28 @@ body.dark-mode [role="dialog"] :is(button, a, [tabindex]):focus-visible {
     outline-offset: 2px;
 }
 
+/* Explicit Shock Index classes keep its surfaces and populated results themed
+   independently of the shared dialog-role and class-suffix selectors. */
+body.dark-mode .shock-field input,
+body.dark-mode .shock-result,
+body.dark-mode .shock-reset {
+    background: var(--surface-soft);
+    color: var(--text);
+}
+
+body.dark-mode .shock-field input {
+    border-color: var(--modal-control-border);
+}
+
+body.dark-mode .shock-total,
+body.dark-mode .shock-interpretation {
+    color: var(--text);
+}
+
+body.dark-mode .shock-reset:hover {
+    background: var(--modal-hover);
+}
+
 /* Only the legacy GCS inline declarations need important overrides. */
 body.dark-mode #gcsOverlay > [role="dialog"] {
     background: var(--surface) !important;
