@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infusion verification — software tests only</title>
+<body>
+<pre id="verification">RUNNING</pre>
+<script src="../js/calculators/infusions.js"></script>
+<script>
+// Standalone real-DOM harness. Open locally or run Chromium --headless --dump-dom.
+// Display snapshots document unresolved rounding defects, not clinical validity.
+const checks = [];
+const alerts = [];
+window.alert = message => alerts.push(message);
+const get = id => document.getElementById(id);
+const equal = (actual, expected) => {
+    if (actual !== expected) throw Error(JSON.stringify({ actual, expected }));
+};
+const units = ["mcgkgmin", "mcgmin", "mgkgmin", "mgmin"];
+const labels = ["mcg/kg/min", "mcg/min", "mg/kg/min", "mg/min"];
+const displays = ["5.25 mL/hr", "0.07 mL/hr", "5250.00 mL/hr", "75.00 mL/hr"];
+const base = { infusionWeight: 70, infusionDose: 0.1, infusionDrugAmount: 4,
+    infusionFinalVolume: 50, infusionDoseType: "mcgkgmin" };
+const change = (id, value) => {
+    get(id).value = value;
+    get(id).dispatchEvent(new Event("input", { bubbles: true }));
+    get(id).dispatchEvent(new Event("change", { bubbles: true }));
+};
+const set = overrides => {
+    alerts.length = 0;
+    for (const [id, value] of Object.entries({ ...base, ...overrides })) change(id, value);
+};
+const calculate = () => get("calculateInfusion").click();
+const cleared = () => {
+    equal(get("infusionConcentration").textContent.trim(), "—");
+    equal(get("infusionRate").textContent.trim(), "—");
+};
+try {
+    openInfusionsCalculator();
+    let transitions = 0;
+    for (const from of units) for (const to of units) {
+        if (from === to) continue;
+        set({ infusionDoseType: from }); calculate();
+        change("infusionDoseType", to); cleared(); equal(alerts.length, 0);
+        equal(get("infusionDoseUnitLabel").textContent, labels[units.indexOf(to)]);
+        calculate(); equal(get("infusionRate").textContent, displays[units.indexOf(to)]);
+        transitions++;
+    }
+    equal(transitions, 12);
+    checks.push("PASS — all 12 ordered unit transitions and current display snapshots");
+    for (const infusionDoseType of units) {
+        for (const id of Object.keys(base)) {
+            set({ infusionDoseType }); calculate();
+            change(id, id === "infusionDoseType" ? "unsupported" : ""); cleared();
+            if (id === "infusionWeight" && !infusionDoseType.includes("kg")) change("infusionDose", "");
+            calculate(); cleared(); equal(alerts.length, 1);
+            set({ infusionDoseType }); cleared(); calculate(); equal(alerts.length, 0);
+        }
+        // HTML number inputs sanitize malformed/non-finite strings to blank.
+        for (const value of ["abc", "Infinity", "NaN", "1e309", "0", "-1", "0.0000009"]) {
+            set({ infusionDoseType }); calculate(); change("infusionDose", value);
+            cleared(); calculate(); cleared(); equal(alerts.length, 1);
+        }
+        set({ infusionDoseType }); calculate();
+        change("infusionDose", "1e308"); change("infusionWeight", 1);
+        change("infusionDrugAmount", "0.000001"); change("infusionFinalVolume", 1);
+        calculate(); cleared(); equal(alerts.length, 1);
+        set({ infusionDoseType }); calculate(); equal(alerts.length, 0);
+        get("resetInfusions").click(); cleared();
+        for (const id of Object.keys(base).filter(id => id !== "infusionDoseType")) equal(get(id).value, "");
+        equal(get("infusionDoseType").value, "mcgkgmin");
+        equal(get("infusionDoseUnitLabel").textContent, "mcg/kg/min");
+        set({ infusionDoseType }); calculate(); get("closeInfusions").click();
+        equal(get("infusionsModal"), null);
+        openInfusionsCalculator(); cleared();
+        equal(get("infusionDose").value, ""); equal(get("infusionDoseType").value, "mcgkgmin");
+    }
+    for (const unit of ["unsupported", "mg/hr"]) {
+        set({}); calculate();
+        const option = document.createElement("option");
+        option.value = unit; option.textContent = unit;
+        get("infusionDoseType").appendChild(option);
+        change("infusionDoseType", unit); cleared(); calculate(); cleared();
+        equal(alerts.length, 1);
+        equal(alerts[0], "The entered values produce a result outside the calculator's supported numeric range. Please check the values and units.");
+        equal(get("infusionDoseType").value, unit);
+        option.remove(); set({}); calculate(); equal(alerts.length, 0);
+    }
+    checks.push("PASS — explicit unsupported-unit rejection preserves failure message and inputs");
+    checks.push("PASS — all-unit input invalidation, invalid/corrected recovery, overflow, reset and reopen");
+    for (const [overrides, id, display] of [
+        [{ infusionDose: 0.005, infusionDrugAmount: 60, infusionFinalVolume: 1000 }, "infusionRate", "0.01 mL/hr"],
+        [{ infusionDose: 0.006, infusionDrugAmount: 60, infusionFinalVolume: 1000 }, "infusionRate", "0.01 mL/hr"],
+        [{ infusionDose: 0.0149, infusionDrugAmount: 60, infusionFinalVolume: 1000 }, "infusionRate", "0.01 mL/hr"],
+        [{ infusionDose: 0.001, infusionDrugAmount: 0.5, infusionFinalVolume: 1000 }, "infusionConcentration", "0.001 mg/mL"]
+    ]) {
+        set({ infusionDoseType: "mcgmin", ...overrides }); calculate(); equal(get(id).textContent, display);
+    }
+    checks.push("UNRESOLVED — small-rate/concentration rounding defects reproduced; current displays are not clinical acceptance criteria");
+    get("closeInfusions").click();
+    get("verification").textContent = JSON.stringify({ status: "PASS", viewport: [innerWidth, innerHeight], checks });
+} catch (error) {
+    get("verification").textContent = JSON.stringify({ status: "FAIL", message: error.message, stack: error.stack, checks });
+}
+</script>
+</body>
+</html>

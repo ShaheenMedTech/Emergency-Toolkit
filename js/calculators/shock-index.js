@@ -237,6 +237,11 @@ function openShockIndexCalculator() {
         .getElementById("calculateShock")
         .addEventListener("click", calculateShockIndex);
 
+    modal.querySelectorAll("input").forEach(input => {
+        ["input", "change"].forEach(event => {
+            input.addEventListener(event, clearShockIndexResults);
+        });
+    });
 
     // ================================
     // Reset
@@ -250,10 +255,7 @@ function openShockIndexCalculator() {
 
             document.getElementById("shockSBP").value = "";
 
-            document.getElementById("shockTotal").textContent = "—";
-
-            document.getElementById("shockInterpretation").textContent =
-                "Enter HR and SBP";
+            clearShockIndexResults();
         });
 }
 
@@ -261,6 +263,25 @@ function openShockIndexCalculator() {
 // ========================================
 // Calculate Shock Index
 // ========================================
+
+function clearShockIndexResults() {
+    document.getElementById("shockTotal").textContent = "—";
+    document.getElementById("shockInterpretation").textContent =
+        "Enter HR and SBP";
+}
+
+
+function formatShockIndex(si) {
+    const rounded = si.toFixed(2);
+    // Keep a value below a threshold visibly below it after rounding.
+    const crossedThreshold = [0.5, 0.7, 0.9, 1.0].find(threshold =>
+        si < threshold && Number(rounded) >= threshold
+    );
+    return crossedThreshold === undefined
+        ? rounded
+        : `<${crossedThreshold.toFixed(2)}`;
+}
+
 
 function calculateShockIndex() {
 
@@ -287,6 +308,8 @@ function calculateShockIndex() {
 
     if (invalidField) {
 
+        clearShockIndexResults();
+
         const [label, value, min, max] = invalidField;
 
         if (!Number.isFinite(value) || value === 0) {
@@ -303,7 +326,7 @@ function calculateShockIndex() {
 
     const si = hr / sbp;
 
-    const roundedSI = si.toFixed(2);
+    const roundedSI = formatShockIndex(si);
 
 
     document.getElementById("shockTotal")

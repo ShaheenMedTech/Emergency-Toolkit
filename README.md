@@ -1,5 +1,7 @@
 # Emergency Toolkit
 
+[![Emergency Toolkit Tests](https://github.com/ShaheenMedTech/Emergency-Toolkit/actions/workflows/tests.yml/badge.svg?branch=v1.3-development)](https://github.com/ShaheenMedTech/Emergency-Toolkit/actions/workflows/tests.yml)
+
 > Emergency Medicine Point-of-Care Toolkit
 
 A lightweight, browser-based clinical reference toolkit designed for rapid point-of-care use in Emergency Medicine.
@@ -119,3 +121,4 @@ Emergency-Toolkit/
 ├── index.html
 ├── LICENSE
 └── README.md
+```

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>ABG modal lifecycle regression</title>
+<body>
+<pre id="verification">RUNNING</pre>
+<script src="browser-harness-guard.js"></script>
+<script src="fixtures/abg-baseline-fixtures.js"></script>
+<iframe id="app" title="Emergency Toolkit lifecycle test" height="900" src="../index.html"></iframe>
+<script>
+const assert = (ok, message) => { if (!ok) throw Error(message); };
+const frame = document.getElementById("app");
+frame.addEventListener("load", () => {
+    const win = frame.contentWindow, doc = frame.contentDocument;
+    const proto = win.EventTarget.prototype;
+    const add = proto.addEventListener, remove = proto.removeEventListener;
+    // Observe native registrations independently of the production cleanup registry.
+    const registry = new Map();
+    const count = target => [...(registry.get(target)?.values() || [])].reduce((n, set) => n + set.size, 0);
+    const total = () => [...registry.keys()].reduce((n, target) => n + count(target), 0);
+    proto.addEventListener = function(type, handler, options) {
+        if ((this === doc && type === "keydown") || (this instanceof win.Element && this.closest("#abgModal"))) {
+            if (!registry.has(this)) registry.set(this, new Map());
+            if (!registry.get(this).has(type)) registry.get(this).set(type, new Set());
+            registry.get(this).get(type).add(handler);
+        }
+        return add.call(this, type, handler, options);
+    };
+    proto.removeEventListener = function(type, handler, options) {
+        registry.get(this)?.get(type)?.delete(handler);
+        return remove.call(this, type, handler, options);
+    };
+    try {
+        const opener = doc.createElement("button"); opener.textContent = "Lifecycle test opener"; doc.body.appendChild(opener);
+        const fixture = ABGBaselineFixtures.examples.find(item => item.id === "E8");
+        const populate = () => {
+            ABGBaselineFixtures.ids.forEach((id, i) => { doc.getElementById(id).value = fixture.inputs[i]; });
+            doc.getElementById("calculateABG").click();
+            assert(doc.getElementById("abgCompensation").textContent === fixture.compensation, "Exact E8 text preserved");
+        };
+        const results = [];
+        for (const width of [390, 1280]) for (const theme of ["light", "dark"]) {
+            frame.width = String(width); doc.body.classList.toggle("dark-mode", theme === "dark");
+            assert(win.innerWidth === width, "Actual viewport width");
+            for (let cycle = 0; cycle < 10; cycle++) {
+                opener.focus(); win.openABGCalculator();
+                assert(total() === 16 && count(doc) === 1, "Exactly one set of listeners on opening");
+                const oldModal = doc.getElementById("abgModal");
+                const oldReset = doc.getElementById("resetABG");
+                doc.getElementById("abgPH").focus(); win.openABGCalculator();
+                assert(total() === 16 && count(doc) === 1, "No duplicate listeners after replacement");
+                for (const target of registry.keys()) if (target instanceof win.Node && oldModal.contains(target)) assert(count(target) === 0, "Every replaced-modal listener removed");
+                populate(); oldReset.click();
+                assert(doc.getElementById("abgCompensation").textContent === fixture.compensation, "Detached reset cannot clear live results");
+                const modal = doc.querySelector(".abg-modal");
+                assert(modal.scrollWidth <= modal.clientWidth, "Mobile overflow correction preserved");
+                for (const id of ABGBaselineFixtures.ids) for (const type of ["input", "change"]) {
+                    populate(); doc.getElementById(id).dispatchEvent(new win.Event(type, { bubbles: true }));
+                    assert(["abgAG", "abgPrimary", "abgCompensation", "abgOxygen"].every(id => doc.getElementById(id).textContent === "—"), "Input invalidation preserved");
+                }
+                const controls = [...modal.querySelectorAll('button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])')].filter(el => !el.disabled && el.offsetParent !== null);
+                const first = controls[0], last = controls[controls.length - 1];
+                last.focus(); const tab = new win.KeyboardEvent("keydown", { key: "Tab", cancelable: true }); doc.dispatchEvent(tab);
+                assert(tab.defaultPrevented && doc.activeElement === first, "Forward Tab wraps");
+                const back = new win.KeyboardEvent("keydown", { key: "Tab", shiftKey: true, cancelable: true }); doc.dispatchEvent(back);
+                assert(back.defaultPrevented && doc.activeElement === last, "Shift Tab wraps");
+                doc.getElementById("abgPH").focus(); const middle = new win.KeyboardEvent("keydown", { key: "Tab", cancelable: true }); doc.dispatchEvent(middle);
+                assert(!middle.defaultPrevented, "Interior Tab remains native");
+                if (cycle % 2) doc.getElementById("closeABG").click();
+                else { const escape = new win.KeyboardEvent("keydown", { key: "Escape", cancelable: true }); doc.dispatchEvent(escape); assert(escape.defaultPrevented, "Escape handled"); }
+                assert(!doc.getElementById("abgModal") && total() === 0, "All listeners removed after close");
+                assert(doc.activeElement === opener, "Original focus restored after replacement");
+                oldReset.click(); assert(total() === 0, "Detached control remains inert");
+            }
+            results.push({ width, theme, cycles: 10, remainingListeners: total() });
+        }
+        document.getElementById("verification").textContent = JSON.stringify({ status: "PASS", checks: results });
+    } catch (error) {
+        document.getElementById("verification").textContent = JSON.stringify({ status: "FAIL", message: error.message });
+    } finally {
+        proto.addEventListener = add; proto.removeEventListener = remove;
+    }
+});
+</script>
+</body>
+</html>

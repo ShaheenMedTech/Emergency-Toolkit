@@ -94,6 +94,11 @@ function openGCSCalculator() {
                     <label>
                         <input type="radio" name="gcsEye" value="1">
                         1 — None
+                    </label><br>
+
+                    <label>
+                        <input type="radio" name="gcsEye" value="NT">
+                        NT — Not testable
                     </label>
 
                 </div>
@@ -182,6 +187,11 @@ function openGCSCalculator() {
                     <label>
                         <input type="radio" name="gcsMotor" value="1">
                         1 — None
+                    </label><br>
+
+                    <label>
+                        <input type="radio" name="gcsMotor" value="NT">
+                        NT — Not testable
                     </label>
 
                 </div>
@@ -360,9 +370,22 @@ function openGCSCalculator() {
 
     inputs.forEach(input => {
 
-        input.addEventListener("change", calculateGCS);
+        input.addEventListener("input", clearGCSResults);
+        input.addEventListener("change", () => {
+            clearGCSResults();
+            calculateGCS();
+        });
 
     });
+
+
+    function clearGCSResults() {
+        document.getElementById("gcsTotal").textContent = "—";
+        document.getElementById("gcsBreakdown").textContent =
+            "E —   V —   M —";
+        document.getElementById("gcsInterpretation").textContent =
+            "Select all three components";
+    }
 
 
     function calculateGCS() {
@@ -381,29 +404,33 @@ function openGCSCalculator() {
 
 
         if (!eye || !verbal || !motor) {
+            document.getElementById("gcsTotal").textContent = "—";
+            document.getElementById("gcsBreakdown").textContent =
+                `E${eye ? eye.value : "—"} V${verbal ? verbal.value : "—"} M${motor ? motor.value : "—"}`;
+            document.getElementById("gcsInterpretation").textContent =
+                "Select all three components";
             return;
         }
 
 
-       const E = Number(eye.value);
-const M = Number(motor.value);
-
-const verbalValue = verbal.value;
-
-if (verbalValue === "NT") {
+if ([eye, verbal, motor].some(component => component.value === "NT")) {
 
     document.getElementById("gcsTotal").textContent = "NT";
 
 document.getElementById("gcsBreakdown").textContent =
-    `E${E} VNT M${M}`;
+    `E${eye.value} V${verbal.value} M${motor.value}`;
 
     document.getElementById("gcsInterpretation").textContent =
-        "Verbal response not testable — total GCS cannot be calculated.";
+        eye.value !== "NT" && motor.value !== "NT"
+            ? "Verbal response not testable — total GCS cannot be calculated."
+            : "One or more components not testable — total GCS cannot be calculated.";
 
     return;
 }
 
-const V = Number(verbalValue);
+const E = Number(eye.value);
+const V = Number(verbal.value);
+const M = Number(motor.value);
 
 const total = E + V + M;
 
@@ -414,6 +441,13 @@ const total = E + V + M;
         document.getElementById("gcsBreakdown")
             .textContent =
             `E ${E} + V ${V} + M ${M}`;
+
+
+if (total === 15) {
+    document.getElementById("gcsInterpretation").textContent =
+        "Maximum GCS score: 15/15.";
+    return;
+}
 
 
        let interpretation;

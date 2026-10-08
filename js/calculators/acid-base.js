@@ -7,7 +7,7 @@ function openABGCalculator() {
     const existing = document.getElementById("abgModal");
 
     if (existing) {
-        existing.remove();
+        existing.closeABGModal();
     }
 
     const modal = document.createElement("div");
@@ -194,14 +194,23 @@ function openABGCalculator() {
     const dialog = modal.querySelector('[role="dialog"]');
     const closeButton = modal.querySelector("#closeABG");
     const previousFocus = document.activeElement;
+    const listeners = [];
+    let closed = false;
+
+    function addABGListener(target, type, handler) {
+        target.addEventListener(type, handler);
+        listeners.push({ target, type, handler });
+    }
 
 
     function closeABGModal() {
 
-        document.removeEventListener(
-            "keydown",
-            handleABGKeydown
-        );
+        if (closed) return;
+        closed = true;
+        listeners.forEach(({ target, type, handler }) => {
+            target.removeEventListener(type, handler);
+        });
+        listeners.length = 0;
 
         modal.remove();
 
@@ -212,6 +221,8 @@ function openABGCalculator() {
             previousFocus.focus();
         }
     }
+
+    modal.closeABGModal = closeABGModal;
 
 
     function handleABGKeydown(event) {
@@ -263,12 +274,14 @@ function openABGCalculator() {
     }
 
 
-    closeButton.addEventListener(
+    addABGListener(
+        closeButton,
         "click",
         closeABGModal
     );
 
-    document.addEventListener(
+    addABGListener(
+        document,
         "keydown",
         handleABGKeydown
     );
@@ -277,28 +290,28 @@ function openABGCalculator() {
 
 
     // Calculate
-    document
-        .getElementById("calculateABG")
-        .addEventListener(
-            "click",
-            calculateABG
-        );
+    modal.querySelectorAll("input").forEach(input => {
+        ["input", "change"].forEach(event => {
+            addABGListener(input, event, clearABGResults);
+        });
+    });
+
+    addABGListener(
+        document.getElementById("calculateABG"),
+        "click",
+        calculateABG
+    );
 
 
     // Reset
-    document
-        .getElementById("resetABG")
-        .addEventListener("click", () => {
+    addABGListener(document.getElementById("resetABG"), "click", () => {
 
-            modal.querySelectorAll("input").forEach(input => {
-                input.value = "";
-            });
-
-            document.getElementById("abgAG").textContent = "—";
-            document.getElementById("abgPrimary").textContent = "—";
-            document.getElementById("abgCompensation").textContent = "—";
-            document.getElementById("abgOxygen").textContent = "—";
+        modal.querySelectorAll("input").forEach(input => {
+            input.value = "";
         });
+
+        clearABGResults();
+    });
 
 }
 
@@ -306,6 +319,14 @@ function openABGCalculator() {
 // ========================================
 // ABG Analysis
 // ========================================
+
+function clearABGResults() {
+    document.getElementById("abgAG").textContent = "—";
+    document.getElementById("abgPrimary").textContent = "—";
+    document.getElementById("abgCompensation").textContent = "—";
+    document.getElementById("abgOxygen").textContent = "—";
+}
+
 
 function calculateABG() {
 
@@ -351,6 +372,8 @@ function calculateABG() {
     );
 
     if (invalidField) {
+
+        clearABGResults();
 
         const [label, value, min, max] = invalidField;
 
@@ -447,6 +470,10 @@ function calculateABG() {
         const upper =
             expectedPCO2 + 2;
 
+        // Round-trip decimal bounds preserve the exact Number comparisons.
+        const expectedInterval =
+            `Expected PaCO₂ interval ${lower}–${upper} mmHg (inclusive)`;
+
 
         if (
             pCO2 >= lower &&
@@ -454,19 +481,19 @@ function calculateABG() {
         ) {
 
             compensation =
-                `Appropriate respiratory compensation. Expected PaCO₂ ${expectedPCO2.toFixed(1)} ±2 mmHg`;
+                `Appropriate respiratory compensation. ${expectedInterval}`;
 
         }
         else if (pCO2 < lower) {
 
             compensation =
-                `Additional respiratory alkalosis. Expected PaCO₂ ${expectedPCO2.toFixed(1)} ±2 mmHg`;
+                `Additional respiratory alkalosis. ${expectedInterval}`;
 
         }
         else {
 
             compensation =
-                `Additional respiratory acidosis. Expected PaCO₂ ${expectedPCO2.toFixed(1)} ±2 mmHg`;
+                `Additional respiratory acidosis. ${expectedInterval}`;
 
         }
     }
@@ -476,31 +503,7 @@ function calculateABG() {
         .textContent = compensation;
 
 
-    // ----------------------------
-    // Oxygen
-    // ----------------------------
-
-    let oxygen;
-
-    if (pO2 < 60) {
-
-        oxygen =
-            "Low PaO₂";
-
-    }
-    else if (pO2 <= 100) {
-
-        oxygen =
-            "Within typical range";
-
-    }
-    else {
-
-        oxygen =
-            "Elevated PaO₂";
-    }
-
-
     document.getElementById("abgOxygen")
-        .textContent = oxygen;
+        .textContent =
+        `PaO₂: ${pO2} mmHg — PaO₂ alone is not a standalone oxygenation assessment. Interpret with appropriate clinical and contextual information, including FiO₂, oxygen-delivery device, sample type, and local protocol.`;
 }

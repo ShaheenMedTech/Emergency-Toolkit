@@ -851,6 +851,11 @@ footer span {
     border-bottom: none;
 }
 
+.abg-result-row > strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
 .abg-note {
     margin-top: 18px;
 

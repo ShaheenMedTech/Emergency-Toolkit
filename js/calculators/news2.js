@@ -378,6 +378,11 @@ function openNEWS2Calculator() {
         .getElementById("calculateNEWS2")
         .addEventListener("click", calculateNEWS2);
 
+    modal.querySelectorAll("input, select").forEach(input => {
+        ["input", "change"].forEach(event => {
+            input.addEventListener(event, clearNEWS2Results);
+        });
+    });
 
     // ================================
     // Reset
@@ -395,22 +400,7 @@ function openNEWS2Calculator() {
             document.getElementById("newsOxygen").value = "0";
             document.getElementById("newsConsciousness").value = "0";
 
-            document.getElementById("news2Total").textContent = "—";
-
-            document.getElementById("news2Risk").textContent =
-                "Complete all observations";
-
-            [
-                "newsRespScore",
-                "newsSpO2Score",
-                "newsSBPScore",
-                "newsPulseScore",
-                "newsTempScore"
-            ].forEach(id => {
-
-                document.getElementById(id).textContent = "";
-
-            });
+            clearNEWS2Results();
 
         });
 
@@ -420,6 +410,19 @@ function openNEWS2Calculator() {
 // ========================================
 // NEWS2 Scoring
 // ========================================
+
+function clearNEWS2Results() {
+    document.getElementById("news2Total").textContent = "—";
+    document.getElementById("news2Risk").textContent =
+        "Complete all observations";
+    [
+        "newsRespScore", "newsSpO2Score", "newsSBPScore",
+        "newsPulseScore", "newsTempScore"
+    ].forEach(id => {
+        document.getElementById(id).textContent = "";
+    });
+}
+
 
 function scoreRespiratoryRate(value) {
 
@@ -561,6 +564,8 @@ const invalidField = validRanges.find(
 
 if (invalidField) {
 
+    clearNEWS2Results();
+
     const [label, value, min, max] = invalidField;
 
     if (!Number.isFinite(value) || value === 0) {
@@ -573,6 +578,13 @@ if (invalidField) {
 
     return;
 }
+
+
+    if (!Number.isInteger(spo2)) {
+        clearNEWS2Results();
+        alert("SpO₂ must be a whole percentage. Fractional values are not supported.");
+        return;
+    }
 
 
     const respiratoryScore =
