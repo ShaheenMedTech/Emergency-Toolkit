@@ -7,7 +7,7 @@ function openABGCalculator() {
     const existing = document.getElementById("abgModal");
 
     if (existing) {
-        existing.remove();
+        existing.closeABGModal();
     }
 
     const modal = document.createElement("div");
@@ -194,14 +194,23 @@ function openABGCalculator() {
     const dialog = modal.querySelector('[role="dialog"]');
     const closeButton = modal.querySelector("#closeABG");
     const previousFocus = document.activeElement;
+    const listeners = [];
+    let closed = false;
+
+    function addABGListener(target, type, handler) {
+        target.addEventListener(type, handler);
+        listeners.push({ target, type, handler });
+    }
 
 
     function closeABGModal() {
 
-        document.removeEventListener(
-            "keydown",
-            handleABGKeydown
-        );
+        if (closed) return;
+        closed = true;
+        listeners.forEach(({ target, type, handler }) => {
+            target.removeEventListener(type, handler);
+        });
+        listeners.length = 0;
 
         modal.remove();
 
@@ -212,6 +221,8 @@ function openABGCalculator() {
             previousFocus.focus();
         }
     }
+
+    modal.closeABGModal = closeABGModal;
 
 
     function handleABGKeydown(event) {
@@ -263,12 +274,14 @@ function openABGCalculator() {
     }
 
 
-    closeButton.addEventListener(
+    addABGListener(
+        closeButton,
         "click",
         closeABGModal
     );
 
-    document.addEventListener(
+    addABGListener(
+        document,
         "keydown",
         handleABGKeydown
     );
@@ -279,29 +292,26 @@ function openABGCalculator() {
     // Calculate
     modal.querySelectorAll("input").forEach(input => {
         ["input", "change"].forEach(event => {
-            input.addEventListener(event, clearABGResults);
+            addABGListener(input, event, clearABGResults);
         });
     });
 
-    document
-        .getElementById("calculateABG")
-        .addEventListener(
-            "click",
-            calculateABG
-        );
+    addABGListener(
+        document.getElementById("calculateABG"),
+        "click",
+        calculateABG
+    );
 
 
     // Reset
-    document
-        .getElementById("resetABG")
-        .addEventListener("click", () => {
+    addABGListener(document.getElementById("resetABG"), "click", () => {
 
-            modal.querySelectorAll("input").forEach(input => {
-                input.value = "";
-            });
-
-            clearABGResults();
+        modal.querySelectorAll("input").forEach(input => {
+            input.value = "";
         });
+
+        clearABGResults();
+    });
 
 }
 

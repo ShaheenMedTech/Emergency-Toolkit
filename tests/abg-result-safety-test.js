@@ -20,6 +20,9 @@ function element() {
             if (!listeners.has(type)) listeners.set(type, []);
             listeners.get(type).push(handler);
         },
+        removeEventListener(type, handler) {
+            listeners.set(type, (listeners.get(type) || []).filter(item => item !== handler));
+        },
         dispatch(type) { for (const handler of listeners.get(type) || []) handler({ target: this }); }
     };
 }
