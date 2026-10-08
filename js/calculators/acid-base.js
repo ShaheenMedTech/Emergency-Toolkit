@@ -277,6 +277,12 @@ function openABGCalculator() {
 
 
     // Calculate
+    modal.querySelectorAll("input").forEach(input => {
+        ["input", "change"].forEach(event => {
+            input.addEventListener(event, clearABGResults);
+        });
+    });
+
     document
         .getElementById("calculateABG")
         .addEventListener(

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ABG result-safety browser regression test</title>
+<body>
+<pre id="verification">RUNNING</pre>
+<script src="../js/calculators/acid-base.js"></script>
+<script>
+// Real-DOM lifecycle verification; no clinical algorithms or expectations added.
+const baseline = { abgPH: "7.30", abgPCO2: "30", abgHCO3: "15", abgPaO2: "80", abgNa: "140", abgCl: "110" };
+const changes = { abgPH: "7.50", abgPCO2: "60", abgHCO3: "18", abgPaO2: "90", abgNa: "142", abgCl: "108" };
+const outputs = ["abgAG", "abgPrimary", "abgCompensation", "abgOxygen"];
+const alerts = [];
+window.alert = message => alerts.push(message);
+const get = id => document.getElementById(id);
+const assert = (condition, message) => { if (!condition) throw Error(message); };
+const set = values => { for (const [id, value] of Object.entries(values)) get(id).value = value; };
+const result = () => outputs.map(id => get(id).textContent.trim());
+const inputValues = () => Object.keys(baseline).map(id => get(id).value);
+const cleared = () => assert(result().every(value => value === "—"), "All results must be cleared");
+const populated = () => assert(result().every(value => value && value !== "—"), "All results must be populated");
+const calculate = () => get("calculateABG").click();
+const dispatch = (id, event) => get(id).dispatchEvent(new Event(event, { bubbles: true }));
+try {
+    openABGCalculator();
+    let transitions = 0;
+    for (const [id, changed] of Object.entries(changes)) for (const event of ["input", "change"]) {
+        alerts.length = 0; set(baseline); calculate(); populated();
+        const previous = JSON.stringify(result());
+        get(id).value = changed;
+        const entered = JSON.stringify(inputValues());
+        dispatch(id, event); cleared();
+        assert(JSON.stringify(inputValues()) === entered, "Entered values must be preserved");
+        assert(alerts.length === 0, "Edit must not validate or calculate");
+        calculate(); populated(); assert(JSON.stringify(result()) !== previous, "Recalculation must reflect the edit");
+        const updated = JSON.stringify(result());
+        get(id).value = ""; dispatch(id, event); cleared(); calculate(); cleared();
+        assert(alerts.length === 1, "Invalid recalculation must validate once");
+        get(id).value = changed; dispatch(id, event); cleared();
+        assert(alerts.length === 1, "Correction must not calculate");
+        calculate(); assert(JSON.stringify(result()) === updated, "Corrected recalculation must recover");
+        transitions++;
+    }
+    for (const id of Object.keys(baseline)) {
+        alerts.length = 0; set(baseline); calculate(); populated();
+        get(id).value = ""; calculate(); cleared(); assert(alerts.length === 1, "Invalid calculation must clear without edit events");
+    }
+    set(baseline); calculate(); get("resetABG").click(); cleared();
+    assert(inputValues().every(value => value === ""), "Reset must empty inputs");
+    set(baseline); calculate(); get("closeABG").click();
+    assert(get("abgModal") === null, "Close must remove the dialog");
+    openABGCalculator(); cleared(); assert(inputValues().every(value => value === ""), "Reopen must empty inputs");
+    for (const id of Object.keys(baseline)) for (const event of ["input", "change"]) {
+        set(baseline); calculate(); populated();
+        get(id).value = changes[id]; dispatch(id, event); cleared();
+        assert(get(id).value === changes[id], "Reopened input must be preserved");
+    }
+    get("closeABG").click();
+    get("verification").textContent = JSON.stringify({ status: "PASS", viewport: [innerWidth, innerHeight], transitions,
+        checks: "All six inputs, both events, preserved values, explicit recalculation, invalid recovery, reset and reopen" });
+} catch (error) {
+    get("verification").textContent = JSON.stringify({ status: "FAIL", message: error.message, stack: error.stack });
+}
+</script>
+</body>
+</html>
