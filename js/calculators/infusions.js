@@ -336,6 +336,12 @@ function openInfusionsCalculator() {
         .getElementById("infusionDoseType")
         .addEventListener("change", updateInfusionLabels);
 
+    modal.querySelectorAll("input, select").forEach(input => {
+        ["input", "change"].forEach(event => {
+            input.addEventListener(event, () => clearInfusionResults(modal));
+        });
+    });
+
 }
 
 
