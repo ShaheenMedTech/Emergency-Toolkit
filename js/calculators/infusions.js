@@ -429,6 +429,13 @@ function calculateInfusion(modal) {
     }
 
 
+    if (!["mcgkgmin", "mcgmin", "mgkgmin", "mgmin"].includes(doseType)) {
+        clearInfusionResults(modal);
+        alert("The entered values produce a result outside the calculator's supported numeric range. Please check the values and units.");
+        return;
+    }
+
+
     // Concentration in mg/mL
     const concentrationMgMl =
         drugAmountMg / finalVolumeMl;

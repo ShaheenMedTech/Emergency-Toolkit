@@ -7,6 +7,9 @@ const source = fs.readFileSync(
     path.join(__dirname, "..", "js", "calculators", "infusions.js"), "utf8"
 );
 
+// Legacy display assertions preserve current formatting, NOT clinical acceptability.
+// UNRESOLVED: 0.075 mL/hr displays as 0.07; see infusions-verification-test.js
+// for independent mathematics and explicit known-defect evidence.
 for (const [doseType, expectedRate] of [
     ["mcgkgmin", "5.25 mL/hr"], ["mcgmin", "0.07 mL/hr"],
     ["mgkgmin", "5250.00 mL/hr"], ["mgmin", "75.00 mL/hr"]
@@ -149,6 +152,8 @@ for (const [doseType, expectedRate] of [
     assert.ok(Number.parseFloat(tinyRate) > 0);
     assert.ok(Number.parseFloat(tinyRate) < 1e-300);
 
+    // UNRESOLVED rounding defects: 0.005 and 0.0005 display 100% too high.
+    // These snapshots must not be interpreted as medication-safety approval.
     for (const [value, decimals, expected] of [
         [0.004999999999999999, 2, "5e-3"],
         [0.005, 2, "0.01"],
