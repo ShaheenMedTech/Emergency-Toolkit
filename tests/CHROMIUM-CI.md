@@ -9,7 +9,7 @@ python -B tests/chromium-runner-test.py
 python tests/chromium-ci-test.py
 ```
 
-Use `python tests/chromium-ci-test.py --browser /absolute/path/to/chromium` to select a browser explicitly. The runner detects `chromium`, `google-chrome`, or `chromium-browser`, fails if unavailable, and prints its version. GitHub's existing Ubuntu hosted image includes Chromium/Chrome; see the [official image inventory](https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md). No browser download, npm package, WebDriver, or additional Python dependency is installed by these test steps. Hosted image/browser versions can change; the emitted version identifies each run, but the browser build is not pinned.
+Use `python tests/chromium-ci-test.py --browser /absolute/path/to/chromium` to select a browser explicitly. Both the CI runner and negative controls use the same selection function: configured `CHROME_BIN` first, then `google-chrome`, `chromium`, or `chromium-browser`. An invalid configured path fails rather than falling back silently. The runner prints the executable and version; the negative suite requires a real positive startup result before exercising error controls. GitHub's existing Ubuntu hosted image includes Chromium/Chrome; see the [official image inventory](https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md). No browser download, npm package, WebDriver, or additional Python dependency is installed by these test steps. Hosted image/browser versions can change; the emitted version identifies each run, but the browser build is not pinned.
 
 The [workflow](../.github/workflows/tests.yml) retains its triggers, job timeout, Node/Python setup, structural test and every JavaScript regression. It adds JavaScript/inline-script syntax checks, runner failure-path checks and ABG browser execution.
 
@@ -28,11 +28,11 @@ Tests use local `file:` assets. Browser DNS resolution is disabled, HTTP(S) traf
 
 ## Failure contract and negative controls
 
-`chromium-ci-test.py` requires exactly one JSON verification output, explicit `status: PASS`, the expected viewport/completion counts, and complete theme matrices. Browser nonzero exit, process timeout (30 seconds per invocation), FAIL/ERROR, RUNNING, malformed/missing/duplicate output, wrong viewport or partial evidence fail the command. A whole job remains subject to the existing five-minute workflow timeout.
+`chromium-ci-test.py` requires exactly one JSON verification output, explicit `status: PASS`, the expected viewport/completion counts, and complete theme matrices. Browser nonzero exit, process timeout (30 seconds per invocation, with captured diagnostics and POSIX process-group cleanup), FAIL/ERROR, RUNNING, malformed/missing/duplicate output, wrong viewport or partial evidence fail the command. A whole job remains subject to the existing five-minute workflow timeout.
 
 The shared `browser-harness-guard.js` loads before fixture/calculator dependencies in every ABG harness. Captured load errors, uncaught script errors and rejected promises produce sticky ERROR output: later code cannot overwrite an error with PASS. A five-second virtual-time watchdog converts incomplete execution into ERROR; Chromium advances virtual time with an eight-second budget. If the guard itself fails to load, the runner still rejects missing/RUNNING output and enforces its process deadline.
 
-`chromium-runner-test.py` verifies status/output/schema rejection, subprocess failure propagation, a real stalled-process timeout, and real Chromium negative controls for missing fixtures, runtime errors, rejected promises, never-completing execution and an attempted PASS after an error. Negative controls use temporary files and do not damage repository assets.
+`chromium-runner-test.py` verifies status/output/schema rejection, subprocess failure propagation, real stalled-process timeouts with child-process cleanup, real nonzero exit, shared browser selection, and real Chromium negative controls for missing fixtures, runtime errors, rejected promises, never-completing execution and an attempted PASS after an error. Negative controls use temporary files and do not damage repository assets.
 
 ## Limits
 
@@ -41,3 +41,11 @@ All four ABG harnesses can be automated safely. `infusions-browser-test.html` re
 Desktop/mobile checks use CSS viewport widths, not physical mobile devices or touch emulation. Keyboard interaction is synthetic; screen-reader and clinical validity review remain separate. The guards observe their harness window; full-application iframe failures are detected through harness assertions and completion checks, not a comprehensive browser-console/CDP monitor. A deliberately falsified harness can still emit matching metadata; this runner cannot establish test quality or clinical truth independently of reviewed assertions.
 
 Passing these regressions does not approve clinical interpretation, rounding policy or release authorization.
+
+## Hosted run 37728175247 investigation
+
+The complete job log records Ubuntu 24.04 image `20261004.327.1`, selection of `/usr/bin/chromium`, and five 30-second process timeouts. It also records a temporary-profile cleanup error (`Directory not empty`), consistent with surviving browser children. Positive ABG execution was skipped after the failure step.
+
+The [exact image installation script](https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/scripts/build/install-google-chrome.sh) installs `/usr/bin/chromium` from a snapshot separately from packaged Google Chrome and exports `CHROME_BIN=/usr/bin/google-chrome`. Choosing Chromium first made the hosted test use a different browser distribution from local Arch Chromium. The corrected selection uses the image's configured packaged browser without a new download.
+
+The previous exception output omitted captured browser stderr, so the Chromium-internal reason for the hosted hang is not proven. Local Arch runs do not reproduce that exact startup failure. A new hosted run is required to confirm that using packaged Chrome resolves it. The correction also adds timeout diagnostics, kills the owned POSIX process group before profile cleanup, and verifies that unexpected process timeouts/nonzero exits remain failures. No timeouts are reclassified as successful negative controls. The guard's intended virtual-time ERROR result remains distinct from a browser process timeout.

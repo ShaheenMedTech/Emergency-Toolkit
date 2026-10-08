@@ -2,12 +2,25 @@
 import argparse
 from html.parser import HTMLParser
 import json
+import os
+import signal
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
+
+def find_browser():
+    # Hosted Ubuntu exports CHROME_BIN for its packaged Google Chrome. Prefer
+    # that stable browser to the independently installed Chromium snapshot.
+    configured = os.environ.get("CHROME_BIN")
+    if configured:
+        browser = shutil.which(configured)
+        if not browser:
+            raise ValueError(f"Configured CHROME_BIN is not executable: {configured}")
+        return browser
+    return shutil.which("google-chrome") or shutil.which("chromium") or shutil.which("chromium-browser")
 
 class ResultParser(HTMLParser):
     def __init__(self):
@@ -56,16 +69,36 @@ def validate(result, kind, width=None):
                 raise ValueError("Invalid layout evidence or modal overflow")
 
 def execute(browser, url, directory, timeout=30):
-    process = subprocess.run(
-        [browser, "--headless", "--no-sandbox", "--disable-gpu", "--disable-background-networking",
+    command = [browser, "--headless", "--no-sandbox", "--disable-gpu", "--disable-background-networking",
          "--disable-component-update", "--no-first-run", "--no-default-browser-check",
          "--host-resolver-rules=MAP * ~NOTFOUND",
          "--proxy-server=http://127.0.0.1:9", "--proxy-bypass-list=<-loopback>",
          "--allow-file-access-from-files",
          f"--user-data-dir={directory}/profile", "--window-size=1400,1100",
-         "--virtual-time-budget=8000", "--dump-dom", url],
-        capture_output=True, text=True, timeout=timeout, check=True)
-    return parse_result(process.stdout)
+         "--virtual-time-budget=8000", "--dump-dom", url]
+    # Kill the owned process group before temporary-profile cleanup, including
+    # children that could otherwise survive subprocess.run's parent-only kill.
+    with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          text=True, start_new_session=True) as process:
+        try:
+            stdout, stderr = process.communicate(timeout=timeout)
+            if process.returncode:
+                raise subprocess.CalledProcessError(process.returncode, command, stdout, stderr)
+        except subprocess.TimeoutExpired as error:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            stdout, stderr = process.communicate(timeout=5)
+            error.output, error.stderr = stdout, stderr
+            print(f"Browser timeout: {browser} ({timeout}s); stderr: {stderr[-4000:]}", flush=True)
+            raise
+        finally:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+    return parse_result(stdout)
 
 def wrapper(harness, width):
     # iframe content dimensions avoid Chromium's minimum top-level window width.
@@ -81,12 +114,13 @@ def wrapper(harness, width):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--browser", default=shutil.which("chromium") or shutil.which("google-chrome") or shutil.which("chromium-browser"))
+    parser.add_argument("--browser", default=None)
     args = parser.parse_args()
+    args.browser = args.browser or find_browser()
     if not args.browser:
         parser.error("Chromium/Chrome is required; use --browser PATH")
     version = subprocess.run([args.browser, "--version"], capture_output=True, text=True, check=True)
-    print(version.stdout.strip())
+    print(f"Browser: {args.browser}; {version.stdout.strip()}", flush=True)
     cases = [("fixtures", "abg-independent-fixtures-browser-test.html", 1280),
              ("fixtures", "abg-independent-fixtures-browser-test.html", 390),
              ("safety", "abg-result-safety-browser-test.html", 1280),
