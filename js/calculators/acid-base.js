@@ -460,6 +460,10 @@ function calculateABG() {
         const upper =
             expectedPCO2 + 2;
 
+        // Round-trip decimal bounds preserve the exact Number comparisons.
+        const expectedInterval =
+            `Expected PaCO₂ interval ${lower}–${upper} mmHg (inclusive)`;
+
 
         if (
             pCO2 >= lower &&
@@ -467,19 +471,19 @@ function calculateABG() {
         ) {
 
             compensation =
-                `Appropriate respiratory compensation. Expected PaCO₂ ${expectedPCO2.toFixed(1)} ±2 mmHg`;
+                `Appropriate respiratory compensation. ${expectedInterval}`;
 
         }
         else if (pCO2 < lower) {
 
             compensation =
-                `Additional respiratory alkalosis. Expected PaCO₂ ${expectedPCO2.toFixed(1)} ±2 mmHg`;
+                `Additional respiratory alkalosis. ${expectedInterval}`;
 
         }
         else {
 
             compensation =
-                `Additional respiratory acidosis. Expected PaCO₂ ${expectedPCO2.toFixed(1)} ±2 mmHg`;
+                `Additional respiratory acidosis. ${expectedInterval}`;
 
         }
     }

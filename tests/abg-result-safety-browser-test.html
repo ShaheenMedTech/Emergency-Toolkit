@@ -56,9 +56,38 @@ try {
         get(id).value = changes[id]; dispatch(id, event); cleared();
         assert(get(id).value === changes[id], "Reopened input must be preserved");
     }
+    // Independent fractional fixtures: preserve clinical prefixes and verify
+    // explicit inclusive bounds, including both old rounding contradictions.
+    let winterCases = 0;
+    for (const [pco2, prefix] of [
+        ["28.63", "Additional respiratory alkalosis."],
+        ["28.65", "Appropriate respiratory compensation."],
+        ["32.63", "Appropriate respiratory compensation."],
+        ["32.65", "Appropriate respiratory compensation."],
+        ["32.650001", "Additional respiratory acidosis."]
+    ]) {
+        set({ ...baseline, abgPH: "7.29", abgHCO3: "15.1", abgPCO2: pco2 });
+        dispatch("abgHCO3", "input"); cleared(); calculate();
+        assert(get("abgCompensation").textContent === `${prefix} Expected PaCO₂ interval 28.65–32.65 mmHg (inclusive)`, "Fractional Winter interval must agree with classification");
+        winterCases++;
+    }
+    set({ ...baseline, abgPH: "7.33", abgHCO3: "21.9", abgPCO2: "42.85" });
+    calculate();
+    assert(get("abgCompensation").textContent.startsWith("Additional respiratory acidosis."), "Preserve raw floating-point classification");
+    const interval = /interval ([\d.e+-]+)–([\d.e+-]+) mmHg/.exec(get("abgCompensation").textContent);
+    assert(interval && Number(interval[2]) < 42.85, "Displayed bound must explain raw classification");
+    for (const bound of [interval[1], interval[2]]) {
+        get("abgPCO2").value = bound; dispatch("abgPCO2", "change"); cleared(); calculate();
+        assert(get("abgCompensation").textContent.startsWith("Appropriate respiratory compensation."), "Raw displayed endpoints must remain inclusive");
+        winterCases++;
+    }
+    get("resetABG").click(); cleared();
+    get("closeABG").click(); openABGCalculator(); cleared();
+    set({ ...baseline, abgPH: "7.29", abgHCO3: "15.1", abgPCO2: "32.63" }); calculate();
+    assert(get("abgCompensation").textContent.endsWith("interval 28.65–32.65 mmHg (inclusive)"), "Reopened Winter calculation must recover");
     get("closeABG").click();
     get("verification").textContent = JSON.stringify({ status: "PASS", viewport: [innerWidth, innerHeight], transitions,
-        checks: "All six inputs, both events, preserved values, explicit recalculation, invalid recovery, reset and reopen" });
+        winterCases, checks: "All six inputs, both events, preserved values, explicit recalculation, invalid recovery, reset, reopen and fractional Winter intervals" });
 } catch (error) {
     get("verification").textContent = JSON.stringify({ status: "FAIL", message: error.message, stack: error.stack });
 }
