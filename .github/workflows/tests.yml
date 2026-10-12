@@ -5,9 +5,12 @@ on:
     branches:
       - main
       - v1.3-development
+      - v1.3-development-reconciled
   pull_request:
     branches:
       - main
+      - v1.3-development
+      - v1.3-development-reconciled
 
 permissions:
   contents: read
@@ -68,5 +71,14 @@ jobs:
       - name: Test Chromium runner failure handling
         run: python tests/chromium-runner-test.py
 
-      - name: Run ABG Chromium regressions
-        run: python tests/chromium-ci-test.py
+      - name: Run ABG and calculator lifecycle Chromium regressions
+        run: python tests/chromium-ci-test.py --artifacts-dir artifacts/chromium
+
+      - name: Preserve Chromium evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chromium-evidence-${{ github.sha }}
+          path: artifacts/chromium/
+          if-no-files-found: warn
+          retention-days: 14

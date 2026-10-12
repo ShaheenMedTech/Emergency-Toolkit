@@ -1,4 +1,6 @@
 """Independent negative controls for the Chromium runner and harness guard."""
+import copy
+import sys
 import importlib.util
 import json
 import time
@@ -31,7 +33,7 @@ class FailureTests(unittest.TestCase):
                 runner.parse_result(dom)
 
     def test_incomplete_pass_rejection(self):
-        for kind in ("fixtures", "safety", "lifecycle", "overflow"):
+        for kind in ("fixtures", "safety", "lifecycle", "overflow", "calculator-lifecycle"):
             with self.subTest(kind=kind), self.assertRaises((ValueError, TypeError)):
                 runner.validate({"status": "PASS"}, kind, 390)
         with self.assertRaises(ValueError):
@@ -39,6 +41,58 @@ class FailureTests(unittest.TestCase):
         checks = [{"width": width, "theme": theme, "cycles": 10, "remainingListeners": 0} for width in (390, 1280) for theme in ("light", "dark")]
         checks[-1]["remainingListeners"] = 1
         with self.assertRaises(ValueError): runner.validate({"checks": checks}, "lifecycle")
+
+    def test_calculator_lifecycle_matrix(self):
+        valid = {"status": "PASS", "checks": [
+            {"width": w, "theme": theme, "calculator": calculator,
+             "cycles": 20, "remainingOwnedListeners": 0}
+            for w in (320, 360, 390, 768, 1280) for theme in ("light", "dark")
+            for calculator in ("openGCSCalculator", "openNEWS2Calculator", "openShockIndexCalculator")]}
+        runner.validate(valid, "calculator-lifecycle")
+        variants = []
+        missing = copy.deepcopy(valid); missing["checks"].pop(); variants.append(missing)
+        duplicate = copy.deepcopy(valid); duplicate["checks"][-1] = duplicate["checks"][0]; variants.append(duplicate)
+        for field, value in [("width", 500), ("theme", "unknown"), ("calculator", "unknown"),
+                             ("cycles", 19), ("cycles", 20.0), ("cycles", "20"),
+                             ("remainingOwnedListeners", 1), ("remainingOwnedListeners", False)]:
+            invalid = copy.deepcopy(valid); invalid["checks"][0][field] = value; variants.append(invalid)
+        malformed = copy.deepcopy(valid); malformed["checks"][0] = None; variants.append(malformed)
+        for invalid in variants:
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                runner.validate(invalid, "calculator-lifecycle")
+
+    def test_main_reaches_and_rejects_lifecycle_matrix(self):
+        fixtures = lambda w: {"viewport": [w, 900], "exampleTransitions": 18, "primaryBoundaries": 30, "numericalDisplayCases": 7}
+        safety = lambda w: {"viewport": [w, 900], "transitions": 12, "winterCases": 7}
+        results = [fixtures(1280), fixtures(390), safety(1280), safety(390),
+            {"checks": [{"width": w, "theme": t, "cycles": 10, "remainingListeners": 0}
+                        for w in (390, 1280) for t in ("light", "dark")]},
+            {"checks": [{"width": w, "theme": t, "clientWidth": w, "scrollWidth": w}
+                        for w in (320, 360, 390, 1280) for t in ("light", "dark")]},
+            {"status": "PASS", "checks": []}]
+        with patch.object(sys, "argv", ["runner", "--browser", "/fake/browser"]), \
+             patch.object(runner.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "Fake version")), \
+             patch.object(runner, "execute", side_effect=results) as execute, \
+             patch("builtins.print"), self.assertRaisesRegex(ValueError, "calculator lifecycle"):
+            runner.main()
+        self.assertEqual(execute.call_count, 7)
+        self.assertIn("modal-keyboard-lifecycle-browser-test.html", execute.call_args.args[1])
+
+    def test_cli_failure_and_evidence(self):
+        # A fake executable tests runner plumbing, never browser behavior.
+        with tempfile.TemporaryDirectory() as temp:
+            browser = Path(temp) / "fake-browser"
+            browser.write_text("#!/usr/bin/env python3\nimport sys\n"
+                "print('Fake browser for runner testing' if '--version' in sys.argv else "
+                "'<pre id=\"verification\">{\"status\":\"PASS\"}</pre>')\n")
+            browser.chmod(0o700)
+            evidence = Path(temp) / "evidence"
+            result = subprocess.run([sys.executable, str(Path(runner.__file__)),
+                "--browser", str(browser), "--artifacts-dir", str(evidence)], capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(json.loads((evidence / "fixtures-1280/validation.json").read_text())["status"], "FAIL")
+            self.assertTrue((evidence / "fixtures-1280/dom.html").exists())
+            self.assertTrue((evidence / "environment.json").exists())
 
     def test_process_failures(self):
         for error in (subprocess.TimeoutExpired("chromium", 30), subprocess.CalledProcessError(1, "chromium")):
