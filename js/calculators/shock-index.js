@@ -30,7 +30,7 @@ function openShockIndexCalculator() {
                         <p>Heart Rate ÷ Systolic Blood Pressure</p>
                     </div>
 
-                    <button id="closeShock" class="shock-close">
+                    <button aria-label="Close dialog" id="closeShock" class="shock-close">
                         ×
                     </button>
                 </div>

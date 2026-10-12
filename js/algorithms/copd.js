@@ -32,7 +32,7 @@ function openCOPD() {
                     </div>
 
                     <button
-                        id="closeCOPD"
+                        aria-label="Close dialog" id="closeCOPD"
                         class="copd-close">
                         ×
                     </button>

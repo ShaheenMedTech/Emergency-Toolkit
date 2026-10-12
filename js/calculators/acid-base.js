@@ -28,7 +28,7 @@ function openABGCalculator() {
                         <p>Arterial blood gas analysis</p>
                     </div>
 
-                    <button id="closeABG" class="abg-close">
+                    <button aria-label="Close dialog" id="closeABG" class="abg-close">
                         ×
                     </button>
                 </div>

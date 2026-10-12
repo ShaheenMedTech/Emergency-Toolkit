@@ -30,7 +30,7 @@ function openNEWS2Calculator() {
                         <p>National Early Warning Score 2</p>
                     </div>
 
-                    <button id="closeNEWS2" class="news2-close">
+                    <button aria-label="Close dialog" id="closeNEWS2" class="news2-close">
                         ×
                     </button>
                 </div>

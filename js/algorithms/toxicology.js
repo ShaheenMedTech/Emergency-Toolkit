@@ -32,7 +32,7 @@ function openToxicology() {
                     </div>
 
                     <button
-                        id="closeToxicology"
+                        aria-label="Close dialog" id="closeToxicology"
                         class="toxicology-close">
                         ×
                     </button>

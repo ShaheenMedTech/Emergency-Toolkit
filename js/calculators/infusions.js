@@ -31,7 +31,7 @@ function openInfusionsCalculator() {
                     </div>
 
                     <button
-                        id="closeInfusions"
+                        aria-label="Close dialog" id="closeInfusions"
                         class="infusions-close">
                         ×
                     </button>

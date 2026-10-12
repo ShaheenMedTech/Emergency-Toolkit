@@ -50,7 +50,7 @@ function openGCSCalculator() {
                         </p>
                     </div>
 
-                    <button id="closeGCS" style="
+                    <button aria-label="Close dialog" id="closeGCS" style="
                         border:none;
                         background:#eee;
                         border-radius:50%;

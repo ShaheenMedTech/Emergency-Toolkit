@@ -32,7 +32,7 @@ function openSeizures() {
                     </div>
 
                     <button
-                        id="closeSeizures"
+                        aria-label="Close dialog" id="closeSeizures"
                         class="seizures-close">
                         ×
                     </button>

@@ -30,7 +30,7 @@ function openTrauma() {
                     </div>
 
                     <button
-                        id="closeTrauma"
+                        aria-label="Close dialog" id="closeTrauma"
                         class="trauma-close"
                     >
                         ×

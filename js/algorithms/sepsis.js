@@ -32,7 +32,7 @@ function openSepsis() {
                     </div>
 
                     <button
-                        id="closeSepsis"
+                        aria-label="Close dialog" id="closeSepsis"
                         class="sepsis-close"
                     >
                         ×

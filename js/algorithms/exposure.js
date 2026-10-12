@@ -31,7 +31,7 @@ function openExposure() {
                     </div>
 
                     <button
-                        id="closeExposure"
+                        aria-label="Close dialog" id="closeExposure"
                         class="exposure-close">
                         ×
                     </button>

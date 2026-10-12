@@ -31,7 +31,7 @@ function openCardiacArrest() {
                     </div>
 
                     <button
-                        id="closeCardiacArrest"
+                        aria-label="Close dialog" id="closeCardiacArrest"
                         class="arrest-close">
                         ×
                     </button>

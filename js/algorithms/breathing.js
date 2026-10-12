@@ -30,7 +30,7 @@ function openBreathing() {
                     </div>
 
                     <button
-                        id="closeBreathing"
+                        aria-label="Close dialog" id="closeBreathing"
                         class="breathing-close">
                         ×
                     </button>

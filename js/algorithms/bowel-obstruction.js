@@ -32,7 +32,7 @@ function openBowelObstruction() {
                     </div>
 
                     <button
-                        id="closeBowelObstruction"
+                        aria-label="Close dialog" id="closeBowelObstruction"
                         class="bowel-obstruction-close">
                         ×
                     </button>

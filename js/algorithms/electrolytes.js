@@ -32,7 +32,7 @@ function openElectrolytes() {
                     </div>
 
                     <button
-                        id="closeElectrolytes"
+                        aria-label="Close dialog" id="closeElectrolytes"
                         class="electrolytes-close">
                         ×
                     </button>

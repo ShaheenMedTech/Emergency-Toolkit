@@ -5519,3 +5519,25 @@ body.dark-mode #gcsOverlay :is(#closeGCS, #resetGCS) {
 body.dark-mode #gcsOverlay :is(#closeGCS, #resetGCS):hover {
     background: var(--modal-hover) !important;
 }
+
+
+/* Shared accessibility controls: preserve clinical text and calculations. */
+:root {
+    --control-focus: #1d4ed8;
+}
+
+body.dark-mode {
+    --control-focus: #93c5fd;
+}
+
+:is(button, a[href], input, select, textarea, [tabindex]):focus-visible {
+    outline: 3px solid var(--control-focus);
+    outline-offset: 3px;
+}
+
+.theme-button,
+[role="dialog"] button[id^="close"] {
+    min-width: 44px;
+    min-height: 44px;
+    flex-shrink: 0;
+}

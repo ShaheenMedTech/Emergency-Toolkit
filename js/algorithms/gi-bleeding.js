@@ -32,7 +32,7 @@ function openGIBleeding() {
                     </div>
 
                     <button
-                        id="closeGIBleeding"
+                        aria-label="Close dialog" id="closeGIBleeding"
                         class="gi-bleeding-close">
                         ×
                     </button>

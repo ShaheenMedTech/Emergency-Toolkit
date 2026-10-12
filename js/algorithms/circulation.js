@@ -31,7 +31,7 @@ function openCirculation() {
                     </div>
 
                     <button
-                        id="closeCirculation"
+                        aria-label="Close dialog" id="closeCirculation"
                         class="circulation-close">
                         ×
                     </button>

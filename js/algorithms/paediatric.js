@@ -31,7 +31,7 @@ function openPaediatric() {
                     </div>
 
                     <button
-                        id="closePaediatric"
+                        aria-label="Close dialog" id="closePaediatric"
                         class="paediatric-close">
                         ×
                     </button>

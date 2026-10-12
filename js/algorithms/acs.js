@@ -32,7 +32,7 @@ function openACS() {
                     </div>
 
                     <button
-                        id="closeACS"
+                        aria-label="Close dialog" id="closeACS"
                         class="acs-close">
                         ×
                     </button>

@@ -7,7 +7,8 @@ const themeToggle = document.getElementById("themeToggle");
 
 if (themeToggle) {
     themeToggle.addEventListener("click", () => {
-        document.body.classList.toggle("dark-mode");
+        const darkMode = document.body.classList.toggle("dark-mode");
+        themeToggle.setAttribute("aria-pressed", String(darkMode));
     });
 }
 

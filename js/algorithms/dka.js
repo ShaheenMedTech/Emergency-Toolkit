@@ -32,7 +32,7 @@ function openDKA() {
                     </div>
 
                     <button
-                        id="closeDKA"
+                        aria-label="Close dialog" id="closeDKA"
                         class="dka-close">
                         ×
                     </button>

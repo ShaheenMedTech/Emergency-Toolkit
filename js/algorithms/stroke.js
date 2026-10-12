@@ -32,7 +32,7 @@ function openStroke() {
                     </div>
 
                     <button
-                        id="closeStroke"
+                        aria-label="Close dialog" id="closeStroke"
                         class="stroke-close">
                         ×
                     </button>

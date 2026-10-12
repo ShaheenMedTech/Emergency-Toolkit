@@ -31,7 +31,7 @@ function openAirway() {
                     </div>
 
                     <button
-                        id="closeAirway"
+                        aria-label="Close dialog" id="closeAirway"
                         class="airway-close"
                     >
                         ×
