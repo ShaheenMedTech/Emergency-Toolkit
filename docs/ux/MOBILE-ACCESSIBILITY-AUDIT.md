@@ -21,7 +21,7 @@ All calculator/algorithm source changes are limited to close-button aria-label a
 
 Passed structural smoke test, JavaScript syntax checks and all 11 existing Node regression suites. Verified each calculator/algorithm file against baseline after removing the single added accessibility attribute: byte-for-byte equality. Verified original branch pointer and unchanged tests/workflows/clinical-safety documents. Diff whitespace check passed. No new clinical approval is implied; clinical release remains NO-GO.
 
-A temporary Chromium audit harness was prepared to inspect home plus calculators/reference dialogs at 320, 360, 390, 768 and 1280 CSS pixels in both themes, including populated ABG long result labels. Chromium crashed before loading the harness: crashpad `setsockopt: Operation not permitted`, exit 133. Tool escalation was rejected by the environment's approval policy. No browser assertion or screenshot succeeded; no viewport result is represented as a pass or a reproduced overflow defect.
+A temporary Chromium audit harness was prepared to inspect home plus calculators/reference dialogs at 320, 360, 390, 768 and 1280 CSS pixels in both themes, including populated ABG long result labels. Chromium crashed before loading the harness: crashpad `setsockopt: Operation not permitted`, exit 133. Tool escalation was rejected by the environment's approval policy. No Codex browser assertion or screenshot succeeded in that sandbox attempt; this limitation is separate from the later user-reported results below.
 
 ### Tests executed by Codex
 
@@ -34,24 +34,38 @@ A temporary Chromium audit harness was prepared to inspect home plus calculators
 - Chromium runner test suite: 8 tests attempted; 7 completed without reported failure, one real-browser positive-startup prerequisite errored with SIGTRAP. Overall runner suite did not pass; its browser-dependent guard checks remain unverified. It is not clinical or browser-layout evidence.
 - Git whitespace checks: PASS.
 
-### Browser result reported by the user
+### Browser results reported by the user — validation checkpoint
 
-User independently ran `tests/abg-mobile-overflow-browser-test.html` in Chromium through a local HTTP server and reported **PASS** at 320, 360, 390 and 1280px in both light and dark themes. This is user-reported evidence for the populated E8 overflow harness only. Codex did not execute or inspect that run; browser version/logs were not supplied. It does not establish any other browser test, all-dialog layout, keyboard/ARIA correctness, zoom, 768px behavior or screen-reader conformance.
+The user executed `scripts/validate-mobile-browser.py` outside the Codex sandbox with real installed Chromium and reported **17/17 invocations PASS, exit code 0**, through the local HTTP procedure. Codex did not execute or independently inspect that browser run; browser version and raw logs were not supplied. These are user-reported regression results, not independent clinical validation.
+
+| Existing harness | User-reported execution coverage | Scope limitation |
+| --- | --- | --- |
+| ABG independent fixtures | 5 invocations: 320/360/390/768/1280px | Baseline fixtures/counts and actual viewport; no full-site/theme/layout conformance implied. |
+| ABG result safety | 5 invocations: 320/360/390/768/1280px | Existing invalidation/recovery and Winter assertions; no clinical applicability approval. |
+| Infusions | 5 invocations: 320/360/390/768/1280px | Existing regression markers PASS; small-rate/concentration rounding defects explicitly remain **UNRESOLVED**. |
+| ABG lifecycle | 1 invocation: internal 390/1280px × light/dark matrix | Existing cycles/listener/focus lifecycle assertions only; not keyboard or accessibility conformance for every dialog. |
+| ABG E8 overflow | 1 invocation: internal 320/360/390/1280px × light/dark matrix | E8 populated modal overflow/text-selection assertions only; 768px not supported by this internal matrix. |
+
+The earlier user-reported standalone E8 PASS is consistent with this batch report. No other browser harness, theme matrix or viewport is inferred. Passing existing display snapshots intentionally preserves known behavior; it does not resolve Infusions numerical policy or authorize clinical release.
+
+Runner review: installed Chromium selection, explicit PASS JSON/count/viewport checks, per-test FAIL/BLOCKED reporting, bounded process execution and owned process-group cleanup, temporary same-origin wrapper cleanup and exact served-harness checks were inspected. No shell command interpolation, browser web-security override or browser-sandbox disabling flag is used. All five widths apply to the three adaptable harnesses; lifecycle/overflow internal matrices stay unchanged. Code duplication of harness completion contracts is intentional but must be updated when their expected counts/markers change. Temporary wrappers require repository scripts-directory write access and the checkout served at 127.0.0.1:8081.
+
+Codex checkpoint checks: runner Python syntax, synthetic valid/incomplete/failed result handling, coverage checks, exit codes 0/1/2 and temporary-file cleanup; structural smoke test; all 11 JavaScript regressions; JavaScript/inline-script syntax and git whitespace checks. These are non-browser checks and do not independently reproduce the reported real Chromium results.
 
 ### Accessibility review and still-unverified checks
 
 Static/VM review found no critical defect in these changes. Close controls remain native buttons with the same listeners, IDs and clinical-visible text. The stable `Dark theme` name describes a toggle whose pressed state matches activation. No tabindex or key handling was added, so existing focus trapping, Escape and focus return code remain unchanged. Shared focus styling does not remove native focus behavior. The more-specific preexisting dark dialog focus rule remains in effect where applicable. Minimum 44px dimensions override smaller width/height constraints, including GCS inline dimensions, and flex shrinking is disabled; this is a CSS review, not a rendered measurement.
 
-Rendered touch-target geometry after cascade, focus visibility/clipping, keyboard traversal/trapping and real screen-reader behavior remain unverified. The E8 widths/themes above have only user-reported overflow evidence; 768px, other calculator/reference layouts, 200% text resizing, browser zoom/reflow and contrast in context remain unverified. ABG independent-fixture/result-safety/lifecycle browser assertions and infusion browser checks have no reported PASS in this sprint. Table absence and English-only support are source-inspection findings, not rendered browser assertions.
+Rendered touch-target geometry after cascade, focus visibility/clipping, real keyboard traversal and screen-reader behavior remain unverified beyond the reported harness assertions. The user-reported five-width fixtures/safety/infusion runs do not measure full-site responsive layout. E8 overflow at 768px, home navigation, other calculator/reference layouts, complete light/dark coverage outside the two built-in ABG matrices, 200% text resizing, browser zoom/reflow and contrast in context remain unverified. Table absence and English-only support remain source-inspection findings. Codex browser execution remains blocked by sandbox startup restrictions.
 
 ## Required follow-up audit
 
-In an environment that can start Chromium, run existing browser checks and the full site at all five widths in both themes. Test home navigation, all five calculator forms and reference dialogs; populate long ABG labels without changing clinical expectations. Verify keyboard Tab/Shift+Tab, Escape and focus return; 200% text resizing and browser zoom/reflow; contrast and visible focus; actual control bounds; page/modal overflow and scrolling; readable long headings/results. Use real keyboard and screen-reader review in addition to DOM assertions. Record exact reproduced defects before making further layout changes.
+Retain the user-reported existing-harness PASS separately from the sandbox limitation. Review the full site at all five widths in both themes, including 768px populated E8 layout not covered by its fixed matrix. Test home navigation, all five calculator forms and reference dialogs; populate long ABG labels without changing clinical expectations. Verify keyboard Tab/Shift+Tab, Escape and focus return; 200% text resizing and browser zoom/reflow; contrast and visible focus; actual control bounds; page/modal overflow and scrolling; readable long headings/results. Use real keyboard and screen-reader review in addition to DOM assertions. Record exact reproduced defects before making further layout changes.
 
-This local UI checkpoint is ready to commit: all available non-browser executable checks passed, no critical defect was identified in the scoped changes, and browser startup limitations are explicitly retained alongside user-reported E8 evidence. The complete rendered mobile/zoom/assistive-technology audit remains outstanding; this is not a claim of full accessibility conformance. No push, merge, rebase or change to main is authorized or performed. Clinical/laboratory approval remains PENDING; clinical implementation NOT AUTHORIZED; clinical release NO-GO.
+The UI change was committed as `0dd9717`; this browser-validation checkpoint records the reproducible runner and the user-reported 17/17 regression PASS separately from Codex checks and sandbox limitations. The complete rendered mobile/zoom/assistive-technology audit remains outstanding; this is not a claim of full accessibility conformance. No push, merge, rebase or change to main is authorized or performed. Clinical/laboratory approval remains PENDING; clinical implementation NOT AUTHORIZED; clinical release NO-GO.
 
 
-## Exact checkpoint file manifest
+## Exact original UI checkpoint file manifest (0dd9717)
 
 - `css/style.css`
 - `index.html`
@@ -86,3 +100,8 @@ This local UI checkpoint is ready to commit: all available non-browser executabl
 - `js/calculators/news2.js`
 - `js/calculators/shock-index.js`
 - `docs/ux/MOBILE-ACCESSIBILITY-AUDIT.md`
+
+
+## Browser-validation checkpoint change scope
+
+Only `scripts/validate-mobile-browser.py` and this audit update are included. Clinical code, warning text, existing harnesses/tests/workflows, clinical-safety documents and the clinical-safety branch are unchanged. No push, merge, rebase or main change is performed. Clinical release remains **NO-GO**.
