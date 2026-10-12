@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>GCS NEWS2 Shock Index keyboard lifecycle regression</title>
+<pre id="verification">RUNNING</pre>
+<script src="browser-harness-guard.js"></script>
+<iframe id="app" title="Calculator lifecycle test" height="900" src="../index.html"></iframe>
+<script>
+const assert = (ok, message) => { if (!ok) throw Error(message); };
+const frame = document.getElementById('app');
+frame.addEventListener('load', () => {
+    const win = frame.contentWindow, doc = frame.contentDocument;
+    const add = doc.addEventListener, remove = doc.removeEventListener;
+    const keys = new Set(), removals = new Map();
+    doc.addEventListener = function(type, handler, options) {
+        if (type === 'keydown') keys.add(handler);
+        return add.call(this, type, handler, options);
+    };
+    doc.removeEventListener = function(type, handler, options) {
+        if (type === 'keydown') {
+            keys.delete(handler); removals.set(handler, (removals.get(handler) || 0) + 1);
+        }
+        return remove.call(this, type, handler, options);
+    };
+    const key = (value, shiftKey = false) => {
+        const event = new win.KeyboardEvent('keydown', { key: value, shiftKey, cancelable: true });
+        doc.dispatchEvent(event); return event;
+    };
+    const unrelated = () => {};
+    const trigger = doc.createElement('button'); trigger.textContent = 'Test opener'; doc.body.appendChild(trigger);
+    const checks = [];
+    try {
+        doc.addEventListener('keydown', unrelated);
+        for (const width of [320, 360, 390, 768, 1280]) for (const theme of ['light', 'dark']) {
+            frame.width = String(width); doc.body.classList.toggle('dark-mode', theme === 'dark');
+            assert(win.innerWidth === width, 'actual viewport');
+            for (const [open, close, replace] of [
+                ['openGCSCalculator', 'closeGCS', false],
+                ['openNEWS2Calculator', 'closeNEWS2', true],
+                ['openShockIndexCalculator', 'closeShock', true]
+            ]) {
+                for (let cycle = 0; cycle < 20; cycle++) {
+                    trigger.focus(); win[open]();
+                    assert(keys.size === 2, 'one owned listener plus unrelated listener');
+                    let button = doc.getElementById(close);
+                    if (replace) {
+                        button.closest('[role="dialog"]').querySelector('input').focus();
+                        win[open](); assert(keys.size === 2, 'replacement releases old callback');
+                        const focus = doc.activeElement; button.click();
+                        assert(doc.activeElement === focus && keys.size === 2, 'old close inert');
+                        button = doc.getElementById(close);
+                    }
+                    const dialog = button.closest('[role="dialog"]');
+                    const controls = [...dialog.querySelectorAll('button,input,select,textarea,a[href],[tabindex]:not([tabindex="-1"])')]
+                        .filter(el => !el.disabled && el.offsetParent !== null);
+                    controls.at(-1).focus();
+                    assert(key('Tab').defaultPrevented && doc.activeElement === controls[0], 'Tab wraps');
+                    assert(key('Tab', true).defaultPrevented && doc.activeElement === controls.at(-1), 'Shift Tab wraps');
+                    controls[1].focus(); assert(!key('Tab').defaultPrevented, 'interior Tab native');
+                    if (!replace && cycle % 3 === 0) {
+                        dialog.click(); assert(keys.size === 2, 'inside click retained');
+                        doc.getElementById('gcsOverlay').click();
+                    } else if (cycle % 2) button.click();
+                    else assert(key('Escape').defaultPrevented, 'Escape dismissed');
+                    assert(keys.size === 1 && keys.has(unrelated), 'only unrelated listener remains');
+                    assert(doc.activeElement === trigger, 'original focus restored');
+                    button.click();
+                    assert(!key('Tab').defaultPrevented && !key('Escape').defaultPrevented, 'no detached key handling');
+                }
+                checks.push({ width, theme, calculator: open, cycles: 20, remainingOwnedListeners: keys.size - 1 });
+            }
+        }
+        assert([...removals.values()].every(n => n === 1), 'exactly one removal per owned listener');
+        document.getElementById('verification').textContent = JSON.stringify({ status: 'PASS', checks });
+    } catch (error) {
+        document.getElementById('verification').textContent = JSON.stringify({ status: 'FAIL', error: String(error), checks });
+    } finally {
+        remove.call(doc, 'keydown', unrelated);
+        doc.addEventListener = add; doc.removeEventListener = remove;
+        trigger.remove();
+    }
+});
+</script>
+</html>

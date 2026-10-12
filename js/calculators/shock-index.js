@@ -8,7 +8,7 @@ function openShockIndexCalculator() {
     const existing = document.getElementById("shockIndexModal");
 
     if (existing) {
-        existing.remove();
+        existing.closeCalculatorModal();
     }
 
     const modal = document.createElement("div");
@@ -149,7 +149,12 @@ function openShockIndexCalculator() {
     const previousFocus = document.activeElement;
 
 
+    let closed = false;
+
     function closeShockIndexModal() {
+
+        if (closed) return;
+        closed = true;
 
         document.removeEventListener(
             "keydown",
@@ -220,6 +225,9 @@ function openShockIndexCalculator() {
         "click",
         closeShockIndexModal
     );
+
+    // Replacement must dispose the old listener and restore its focus origin.
+    modal.closeCalculatorModal = closeShockIndexModal;
 
     document.addEventListener(
         "keydown",

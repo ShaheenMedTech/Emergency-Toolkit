@@ -8,7 +8,7 @@ function openNEWS2Calculator() {
     const existing = document.getElementById("news2Modal");
 
     if (existing) {
-        existing.remove();
+        existing.closeCalculatorModal();
     }
 
     const modal = document.createElement("div");
@@ -290,7 +290,12 @@ function openNEWS2Calculator() {
     const closeButton = modal.querySelector("#closeNEWS2");
     const previousFocus = document.activeElement;
 
+    let closed = false;
+
     function closeNEWS2Modal() {
+
+        if (closed) return;
+        closed = true;
 
         document.removeEventListener(
             "keydown",
@@ -361,6 +366,9 @@ function openNEWS2Calculator() {
         "click",
         closeNEWS2Modal
     );
+
+    // Replacement must dispose the old listener and restore its focus origin.
+    modal.closeCalculatorModal = closeNEWS2Modal;
 
     document.addEventListener(
         "keydown",

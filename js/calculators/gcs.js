@@ -270,7 +270,12 @@ function openGCSCalculator() {
     const dialog = modal.querySelector('[role="dialog"]');
     const previousFocus = document.activeElement;
 
+    let closed = false;
+
     function closeGCSModal() {
+
+        if (closed) return;
+        closed = true;
 
         document.removeEventListener(
             "keydown",
@@ -357,7 +362,7 @@ function openGCSCalculator() {
         .addEventListener("click", (event) => {
 
             if (event.target.id === "gcsOverlay") {
-                modal.remove();
+                closeGCSModal();
             }
 
         });
