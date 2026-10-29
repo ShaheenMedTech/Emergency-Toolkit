@@ -82,7 +82,7 @@ const cases = [
             infusionWeight: "80", infusionDose: "0.2", infusionDoseType: "mgkgmin",
             infusionDrugAmount: "8", infusionFinalVolume: "100"
         },
-        valid: { infusionConcentration: "0.080 mg/mL", infusionRate: "5.25 mL/hr" },
+        valid: { infusionConcentration: "0.08 mg/mL", infusionRate: "5.25 mL/hr" },
         cleared: { infusionConcentration: "—", infusionRate: "—" },
         invalid: {
             infusionWeight: ["", "0", "-1", "501", "Infinity", "NaN"],
@@ -203,7 +203,7 @@ for (const config of cases) {
         expect(config.cleared);
         assert.equal(get("infusionDoseUnitLabel").textContent, "mg/kg/min");
         calculate();
-        assert.equal(get("infusionRate").textContent, "5250.00 mL/hr");
+        assert.equal(get("infusionRate").textContent, "5250 mL/hr");
         get("infusionDoseType").value = "mcgkgmin";
         get("infusionDoseType").dispatch("change");
         expect(config.cleared);
