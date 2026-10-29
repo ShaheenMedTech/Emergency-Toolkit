@@ -76,6 +76,10 @@ The toolkit currently supports:
 - Independent clinical modules
 - Independent calculator modules
 
+## Contributing and Safety
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for validation and review requirements, and [SECURITY.md](SECURITY.md) for security and clinical-safety reporting. CI checks structure and JavaScript syntax; it does not establish clinical validity.
+
 ## Project Structure
 
 ```text
