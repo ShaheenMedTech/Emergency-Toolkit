@@ -7,7 +7,7 @@ function openABGCalculator() {
     const existing = document.getElementById("abgModal");
 
     if (existing) {
-        existing.remove();
+        existing.closeABGModal();
     }
 
     const modal = document.createElement("div");
@@ -194,14 +194,23 @@ function openABGCalculator() {
     const dialog = modal.querySelector('[role="dialog"]');
     const closeButton = modal.querySelector("#closeABG");
     const previousFocus = document.activeElement;
+    const listeners = [];
+    let closed = false;
+
+    function addABGListener(target, type, handler) {
+        target.addEventListener(type, handler);
+        listeners.push({ target, type, handler });
+    }
 
 
     function closeABGModal() {
 
-        document.removeEventListener(
-            "keydown",
-            handleABGKeydown
-        );
+        if (closed) return;
+        closed = true;
+        listeners.forEach(({ target, type, handler }) => {
+            target.removeEventListener(type, handler);
+        });
+        listeners.length = 0;
 
         modal.remove();
 
@@ -212,6 +221,8 @@ function openABGCalculator() {
             previousFocus.focus();
         }
     }
+
+    modal.closeABGModal = closeABGModal;
 
 
     function handleABGKeydown(event) {
@@ -263,12 +274,14 @@ function openABGCalculator() {
     }
 
 
-    closeButton.addEventListener(
+    addABGListener(
+        closeButton,
         "click",
         closeABGModal
     );
 
-    document.addEventListener(
+    addABGListener(
+        document,
         "keydown",
         handleABGKeydown
     );
@@ -277,28 +290,28 @@ function openABGCalculator() {
 
 
     // Calculate
-    document
-        .getElementById("calculateABG")
-        .addEventListener(
-            "click",
-            calculateABG
-        );
+    modal.querySelectorAll("input").forEach(input => {
+        ["input", "change"].forEach(event => {
+            addABGListener(input, event, clearABGResults);
+        });
+    });
+
+    addABGListener(
+        document.getElementById("calculateABG"),
+        "click",
+        calculateABG
+    );
 
 
     // Reset
-    document
-        .getElementById("resetABG")
-        .addEventListener("click", () => {
+    addABGListener(document.getElementById("resetABG"), "click", () => {
 
-            modal.querySelectorAll("input").forEach(input => {
-                input.value = "";
-            });
-
-            document.getElementById("abgAG").textContent = "—";
-            document.getElementById("abgPrimary").textContent = "—";
-            document.getElementById("abgCompensation").textContent = "—";
-            document.getElementById("abgOxygen").textContent = "—";
+        modal.querySelectorAll("input").forEach(input => {
+            input.value = "";
         });
+
+        clearABGResults();
+    });
 
 }
 
@@ -306,6 +319,14 @@ function openABGCalculator() {
 // ========================================
 // ABG Analysis
 // ========================================
+
+function clearABGResults() {
+    document.getElementById("abgAG").textContent = "—";
+    document.getElementById("abgPrimary").textContent = "—";
+    document.getElementById("abgCompensation").textContent = "—";
+    document.getElementById("abgOxygen").textContent = "—";
+}
+
 
 function calculateABG() {
 
@@ -351,6 +372,8 @@ function calculateABG() {
     );
 
     if (invalidField) {
+
+        clearABGResults();
 
         const [label, value, min, max] = invalidField;
 
