@@ -1,0 +1,22 @@
+name: Calculator engineering checks
+on:
+  push:
+    branches: [main, fix/engineering-result-safety, fix/infusion-display-precision]
+  pull_request:
+    branches: [main, fix/engineering-result-safety]
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Structure
+        run: python3 tests/smoke-test.py
+      - name: JavaScript regressions
+        run: |
+          for test in tests/*-test.js; do node "$test"; done
+      - name: Syntax
+        run: |
+          for file in js/*.js js/algorithms/*.js js/calculators/*.js tests/*-test.js; do node --check "$file"; done

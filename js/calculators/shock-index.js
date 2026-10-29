@@ -237,6 +237,11 @@ function openShockIndexCalculator() {
         .getElementById("calculateShock")
         .addEventListener("click", calculateShockIndex);
 
+    modal.querySelectorAll("input").forEach(input => {
+        ["input", "change"].forEach(event => {
+            input.addEventListener(event, clearShockIndexResults);
+        });
+    });
 
     // ================================
     // Reset
@@ -250,10 +255,7 @@ function openShockIndexCalculator() {
 
             document.getElementById("shockSBP").value = "";
 
-            document.getElementById("shockTotal").textContent = "—";
-
-            document.getElementById("shockInterpretation").textContent =
-                "Enter HR and SBP";
+            clearShockIndexResults();
         });
 }
 
@@ -261,6 +263,13 @@ function openShockIndexCalculator() {
 // ========================================
 // Calculate Shock Index
 // ========================================
+
+function clearShockIndexResults() {
+    document.getElementById("shockTotal").textContent = "—";
+    document.getElementById("shockInterpretation").textContent =
+        "Enter HR and SBP";
+}
+
 
 function calculateShockIndex() {
 
@@ -286,6 +295,8 @@ function calculateShockIndex() {
     );
 
     if (invalidField) {
+
+        clearShockIndexResults();
 
         const [label, value, min, max] = invalidField;
 

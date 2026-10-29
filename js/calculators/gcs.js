@@ -360,9 +360,22 @@ function openGCSCalculator() {
 
     inputs.forEach(input => {
 
-        input.addEventListener("change", calculateGCS);
+        input.addEventListener("input", clearGCSResults);
+        input.addEventListener("change", () => {
+            clearGCSResults();
+            calculateGCS();
+        });
 
     });
+
+
+    function clearGCSResults() {
+        document.getElementById("gcsTotal").textContent = "—";
+        document.getElementById("gcsBreakdown").textContent =
+            "E —   V —   M —";
+        document.getElementById("gcsInterpretation").textContent =
+            "Select all three components";
+    }
 
 
     function calculateGCS() {
@@ -381,6 +394,11 @@ function openGCSCalculator() {
 
 
         if (!eye || !verbal || !motor) {
+            document.getElementById("gcsTotal").textContent = "—";
+            document.getElementById("gcsBreakdown").textContent =
+                `E${eye ? eye.value : "—"} V${verbal ? verbal.value : "—"} M${motor ? motor.value : "—"}`;
+            document.getElementById("gcsInterpretation").textContent =
+                "Select all three components";
             return;
         }
 

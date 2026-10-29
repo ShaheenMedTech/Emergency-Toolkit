@@ -336,6 +336,12 @@ function openInfusionsCalculator() {
         .getElementById("infusionDoseType")
         .addEventListener("change", updateInfusionLabels);
 
+    modal.querySelectorAll("input, select").forEach(input => {
+        ["input", "change"].forEach(event => {
+            input.addEventListener(event, () => clearInfusionResults(modal));
+        });
+    });
+
 }
 
 
@@ -407,6 +413,8 @@ function calculateInfusion(modal) {
 
     if (invalidField) {
 
+        clearInfusionResults(modal);
+
         const [label, value, min, max] = invalidField;
 
         if (!Number.isFinite(value)) {
@@ -417,6 +425,13 @@ function calculateInfusion(modal) {
             alert(`${label} must be greater than zero.`);
         }
 
+        return;
+    }
+
+
+    if (!["mcgkgmin", "mcgmin", "mgkgmin", "mgmin"].includes(doseType)) {
+        clearInfusionResults(modal);
+        alert("The entered values produce a result outside the calculator's supported numeric range. Please check the values and units.");
         return;
     }
 
@@ -471,6 +486,14 @@ function calculateInfusion(modal) {
         mlPerMin * 60;
 
 
+    if ([concentrationMgMl, requiredMgPerMin, mlPerMin, mlPerHour]
+        .some(value => !Number.isFinite(value) || value <= 0)) {
+        clearInfusionResults(modal);
+        alert("The entered values produce a result outside the calculator's supported numeric range. Please check the values and units.");
+        return;
+    }
+
+
     modal.querySelector("#infusionConcentration")
         .textContent =
         `${concentrationMgMl.toFixed(3)} mg/mL`;
@@ -479,6 +502,12 @@ function calculateInfusion(modal) {
     modal.querySelector("#infusionRate")
         .textContent =
         `${mlPerHour.toFixed(2)} mL/hr`;
+}
+
+
+function clearInfusionResults(modal) {
+    modal.querySelector("#infusionConcentration").textContent = "—";
+    modal.querySelector("#infusionRate").textContent = "—";
 }
 
 
@@ -500,12 +529,5 @@ function resetInfusions(modal) {
         "mcg/kg/min";
 
 
-    modal.querySelector("#infusionConcentration")
-        .textContent =
-        "—";
-
-
-    modal.querySelector("#infusionRate")
-        .textContent =
-        "—";
+    clearInfusionResults(modal);
 }
