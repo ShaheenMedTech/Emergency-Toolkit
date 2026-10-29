@@ -1,0 +1,27 @@
+name: Main branch structural checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  structural:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Check HTML references and duplicate IDs
+        run: python3 tests/smoke-test.py
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          for file in js/*.js js/algorithms/*.js js/calculators/*.js; do
+            node --check "$file"
+          done
