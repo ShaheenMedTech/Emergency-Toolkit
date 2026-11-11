@@ -44,7 +44,9 @@ function openInfusionsCalculator() {
                         <p>
                             Verify the drug, concentration, prescribed dose,
                             units, patient weight and local protocol before
-                            administration.
+                            administration. Results are mathematical calculations,
+                            not pump settings; confirm device limits and increments
+                            separately. Display precision does not establish clinical accuracy.
                         </p>
                     </div>
 
@@ -172,7 +174,7 @@ function openInfusionsCalculator() {
                             </div>
 
                             <div class="infusions-result-row">
-                                <span>Required rate</span>
+                                <span>Calculated infusion rate</span>
                                 <strong id="infusionRate">
                                     —
                                 </strong>
@@ -496,14 +498,46 @@ function calculateInfusion(modal) {
 
     modal.querySelector("#infusionConcentration")
         .textContent =
-        `${concentrationMgMl.toFixed(3)} mg/mL`;
+        `${formatInfusionValue(concentrationMgMl)} mg/mL`;
 
 
     modal.querySelector("#infusionRate")
         .textContent =
-        `${mlPerHour.toFixed(2)} mL/hr`;
+        `${formatInfusionRate(mlPerHour)} mL/hr`;
 }
 
+
+// Display only: six significant digits of the stored Number. Never reuse the text in arithmetic.
+function formatInfusionValue(value) {
+    if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+        throw new RangeError("Display formatter requires a positive finite Number.");
+    }
+
+    const [mantissa, exponentText] = value.toExponential(5).split("e");
+    const exponent = Number(exponentText);
+    const trimmed = mantissa.replace(/\.?0+$/, "");
+    // Select notation AFTER rounding, without reparsing the rounded number.
+    if (exponent < -6 || exponent >= 6) {
+        return `${trimmed}e${exponent >= 0 ? "+" : ""}${exponent}`;
+    }
+
+    const digits = trimmed.replace(".", "");
+    const point = exponent + 1;
+    if (point <= 0) return `0.${"0".repeat(-point)}${digits}`;
+    if (point >= digits.length) return digits + "0".repeat(point - digits.length);
+    return `${digits.slice(0, point)}.${digits.slice(point)}`;
+}
+
+function formatInfusionRate(value) {
+    const formatted = formatInfusionValue(value);
+    const [coefficient, exponent] = formatted.split("e");
+    if (exponent === undefined) return formatted;
+
+    const superscripts = "⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻";
+    const characters = "0123456789+-";
+    const power = Array.from(exponent, digit => superscripts[characters.indexOf(digit)]).join("");
+    return `${coefficient} × 10${power}`;
+}
 
 function clearInfusionResults(modal) {
     modal.querySelector("#infusionConcentration").textContent = "—";
