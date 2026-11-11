@@ -35,6 +35,7 @@ function openABGCalculator() {
 
                 <div class="abg-body">
 
+                    <p>Use pH, PaCO₂, actual HCO₃⁻ and PaO₂ from the same arterial blood gas report.</p>
                     <div class="abg-grid">
 
                         <div class="abg-field">
@@ -66,7 +67,7 @@ function openABGCalculator() {
 
                         <div class="abg-field">
                             <label for="abgHCO3">
-                                HCO₃⁻
+                                Actual HCO₃⁻ (blood gas report)
                                 <span>mmol/L</span>
                             </label>
                             <input
@@ -94,6 +95,10 @@ function openABGCalculator() {
                             >
                         </div>
 
+                    </div>
+
+                    <p>For the anion gap, enter Na⁺, Cl⁻ and total CO₂ from the same serum chemistry panel.</p>
+                    <div class="abg-grid">
                         <div class="abg-field">
                             <label for="abgNa">
                                 Na⁺
@@ -122,6 +127,11 @@ function openABGCalculator() {
                                 step="1"
                                 placeholder="105"
                             >
+                        </div>
+
+                        <div class="abg-field">
+                            <label for="abgTotalCO2">Serum total CO₂ <span>mmol/L</span></label>
+                            <input id="abgTotalCO2" type="number" min="1" max="60" step="0.1" placeholder="24">
                         </div>
 
                     </div>
@@ -367,13 +377,16 @@ function calculateABG() {
     );
 
 
+    const serumTotalCO2 = Number(document.getElementById("abgTotalCO2").value);
+
     const validRanges = [
         ["pH", pH, 6.5, 8.0],
         ["PaCO₂", pCO2, 5, 150],
         ["HCO₃⁻", HCO3, 1, 60],
         ["PaO₂", pO2, 1, 500],
         ["Na⁺", Na, 80, 220],
-        ["Cl⁻", Cl, 40, 180]
+        ["Cl⁻", Cl, 40, 180],
+        ["Serum total CO₂", serumTotalCO2, 1, 60]
     ];
 
     const invalidField = validRanges.find(
@@ -406,7 +419,7 @@ function calculateABG() {
     // ----------------------------
 
     const anionGap =
-        Na - (Cl + HCO3);
+        Na - (Cl + serumTotalCO2);
 
 
     document.getElementById("abgAG")

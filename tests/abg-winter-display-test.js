@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const elements = new Map();
-const baseline = { abgPH: "7.29", abgPCO2: "30", abgHCO3: "15.1", abgPaO2: "80", abgNa: "140", abgCl: "110" };
+const baseline = { abgPH: "7.29", abgPCO2: "30", abgHCO3: "15.1", abgPaO2: "80", abgNa: "140", abgCl: "110", abgTotalCO2: "24" };
 for (const [id, value] of Object.entries(baseline)) elements.set(id, { value });
 for (const id of ["abgAG", "abgPrimary", "abgCompensation", "abgOxygen"]) elements.set(id, { textContent: "" });
 const alerts = [];

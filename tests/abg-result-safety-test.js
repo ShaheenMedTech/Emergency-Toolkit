@@ -6,9 +6,9 @@ const vm = require("node:vm");
 const source = fs.readFileSync(path.join(__dirname, "../js/calculators/acid-base.js"), "utf8");
 const baseline = {
     abgPH: "7.30", abgPCO2: "30", abgHCO3: "15",
-    abgPaO2: "80", abgNa: "140", abgCl: "110"
+    abgPaO2: "80", abgNa: "140", abgCl: "110", abgTotalCO2: "22"
 };
-const changes = { abgPH: "7.50", abgPCO2: "60", abgHCO3: "18", abgPaO2: "50", abgNa: "142", abgCl: "108" };
+const changes = { abgPH: "7.50", abgPCO2: "60", abgHCO3: "18", abgPaO2: "50", abgNa: "142", abgCl: "108", abgTotalCO2: "24" };
 const outputs = ["abgAG", "abgPrimary", "abgCompensation", "abgOxygen"];
 const elements = new Map();
 const alerts = [];
@@ -81,6 +81,14 @@ for (const [id, changed] of Object.entries(changes)) for (const event of ["input
     calculate(); assert.deepEqual(result(), updated);
     transitions++;
 }
+set(baseline); calculate();
+const original = result();
+set({ abgTotalCO2: "25" }); calculate();
+assert.equal(result()[0], "5.0");
+assert.deepEqual(result().slice(1), original.slice(1));
+set({ abgHCO3: "18" }); calculate();
+assert.equal(result()[0], "5.0");
+assert.notEqual(result()[2], original[2]);
 // Keep invalid-recalculation clearing safe even when programmatic edits omit events.
 for (const id of Object.keys(baseline)) {
     set(baseline); calculate(); populated(); alerts.length = 0;
@@ -99,5 +107,5 @@ for (const id of Object.keys(baseline)) for (const event of ["input", "change"])
     get(id).value = changes[id]; get(id).dispatch(event); cleared();
     assert.equal(get(id).value, changes[id]);
 }
-assert.equal(transitions, 12);
-console.log("PASS — ABG all six inputs × both events: edit/invalid/corrected/recalculated transitions, input preservation, reset and reopen");
+assert.equal(transitions, 14);
+console.log("PASS — ABG all seven inputs × both events: edit/invalid/corrected/recalculated transitions, input preservation, reset and reopen");
