@@ -174,7 +174,7 @@ function openInfusionsCalculator() {
                             </div>
 
                             <div class="infusions-result-row">
-                                <span>Required rate</span>
+                                <span>Calculated infusion rate</span>
                                 <strong id="infusionRate">
                                     —
                                 </strong>
@@ -503,7 +503,7 @@ function calculateInfusion(modal) {
 
     modal.querySelector("#infusionRate")
         .textContent =
-        `${formatInfusionValue(mlPerHour)} mL/hr`;
+        `${formatInfusionRate(mlPerHour)} mL/hr`;
 }
 
 
@@ -526,6 +526,17 @@ function formatInfusionValue(value) {
     if (point <= 0) return `0.${"0".repeat(-point)}${digits}`;
     if (point >= digits.length) return digits + "0".repeat(point - digits.length);
     return `${digits.slice(0, point)}.${digits.slice(point)}`;
+}
+
+function formatInfusionRate(value) {
+    const formatted = formatInfusionValue(value);
+    const [coefficient, exponent] = formatted.split("e");
+    if (exponent === undefined) return formatted;
+
+    const superscripts = "⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻";
+    const characters = "0123456789+-";
+    const power = Array.from(exponent, digit => superscripts[characters.indexOf(digit)]).join("");
+    return `${coefficient} × 10${power}`;
 }
 
 function clearInfusionResults(modal) {
