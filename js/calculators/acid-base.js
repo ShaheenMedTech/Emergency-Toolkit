@@ -97,7 +97,7 @@ function openABGCalculator() {
 
                     </div>
 
-                    <p>For the anion gap, enter Na⁺, Cl⁻ and total CO₂ from the same serum chemistry panel.</p>
+                    <p>Optional for blood gas interpretation. To calculate the anion gap, enter Na⁺, Cl⁻ and total CO₂ from the same serum chemistry panel.</p>
                     <div class="abg-grid">
                         <div class="abg-field">
                             <label for="abgNa">
@@ -368,16 +368,16 @@ function calculateABG() {
         document.getElementById("abgPaO2").value
     );
 
-    const Na = Number(
-        document.getElementById("abgNa").value
-    );
-
-    const Cl = Number(
-        document.getElementById("abgCl").value
-    );
-
-
-    const serumTotalCO2 = Number(document.getElementById("abgTotalCO2").value);
+    // A blank chemistry input means the panel is incomplete. Invalid typed
+    // numbers can also have an empty value in the browser; still validate those.
+    function chemistryValue(id) {
+        const input = document.getElementById(id);
+        if (input.validity?.badInput) return NaN;
+        return input.value.trim() === "" ? null : Number(input.value);
+    }
+    const Na = chemistryValue("abgNa");
+    const Cl = chemistryValue("abgCl");
+    const serumTotalCO2 = chemistryValue("abgTotalCO2");
 
     const validRanges = [
         ["pH", pH, 6.5, 8.0],
@@ -391,9 +391,7 @@ function calculateABG() {
 
     const invalidField = validRanges.find(
         ([, value, min, max]) =>
-            !Number.isFinite(value) ||
-            value < min ||
-            value > max
+            value !== null && (!Number.isFinite(value) || value < min || value > max)
     );
 
     if (invalidField) {
@@ -418,14 +416,13 @@ function calculateABG() {
     // Anion Gap
     // ----------------------------
 
-    const anionGap =
-        Na - (Cl + serumTotalCO2);
-
-
-    document.getElementById("abgAG")
-        .textContent =
-        anionGap.toFixed(1);
-
+    const gapOutput = document.getElementById("abgAG");
+    if (Na === null || Cl === null || serumTotalCO2 === null) {
+        gapOutput.textContent = "Unavailable — enter serum Na⁺, Cl⁻ and total CO₂.";
+    } else {
+        const anionGap = Na - (Cl + serumTotalCO2);
+        gapOutput.textContent = anionGap.toFixed(1);
+    }
 
     // ----------------------------
     // Primary disorder

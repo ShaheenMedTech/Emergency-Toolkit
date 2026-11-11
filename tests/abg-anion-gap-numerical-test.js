@@ -62,8 +62,11 @@ for (let field = 0; field < ids.length; field++) {
     for (const invalid of ["", "NaN", "Infinity", "-Infinity", "not-a-number", "1e309", "1e308", "5e-324", "1e-324"]) {
         calculate(valid); assert.equal(observed.length, 1);
         const inputs = [...valid]; inputs[field] = invalid; calculate(inputs);
-        assert.equal(alerts.length, 1); assert.equal(observed.length, 0, "Invalid data never reaches gap formatter");
-        outputs.forEach(id => assert.equal(elements.get(id).textContent, "—", "Failure clears every prior result"));
+        const missingChemistry = field >= 4 && invalid === "";
+        assert.equal(alerts.length, missingChemistry ? 0 : 1);
+        assert.equal(observed.length, 0, "Incomplete or invalid data never reaches gap formatter");
+        if (missingChemistry) assert.match(elements.get("abgAG").textContent, /^Unavailable/);
+        else outputs.forEach(id => assert.equal(elements.get(id).textContent, "—"));
         assert.deepEqual(ids.map(id => elements.get(id).value), inputs);
         calculate(valid); assert.equal(elements.get("abgAG").textContent, "13.8"); invalidCases++;
     }
