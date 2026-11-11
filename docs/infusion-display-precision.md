@@ -29,3 +29,5 @@ Six displayed digits do not establish six-digit accuracy of the prescription, pr
 Formatting cannot recover precision already lost through floating-point intermediate arithmetic. Tests separately expose subnormal quantization, underflow and overflow limits instead of claiming the formatting bound covers total mathematical error. Existing numeric guards continue to withhold invalid results.
 
 Before merging or release, record acceptance of: six significant digits and its formatting budget; binary versus exact decimal rounding; notation cutoffs and readability; unit presentation and mathematical-result wording; and handling of extreme values. This proposal does not change ABG, NEWS2, GCS or Shock Index clinical behavior or approve draft #2.
+
+The Calculated infusion rate field renders scientific notation with a multiplication sign and superscript exponent (for example, 1 × 10⁻⁷ mL/hr). Ordinary decimal rates and concentration formatting retain their existing representation.
