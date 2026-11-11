@@ -328,6 +328,18 @@ function clearABGResults() {
 }
 
 
+// The form has already validated these positive, finite numeric inputs. Keep
+// the entered decimal digits, including scientific notation, for boundary tests.
+function winterDecimalRatio(input) {
+    const [mantissa, exponent = "0"] = input.trim().toLowerCase().split("e");
+    const [whole, fraction = ""] = mantissa.split(".");
+    const digits = BigInt(whole + fraction);
+    const places = fraction.length - Number(exponent);
+    return places >= 0
+        ? [digits, 10n ** BigInt(places)]
+        : [digits * 10n ** BigInt(-places), 1n];
+}
+
 function calculateABG() {
 
     const pH = Number(
@@ -461,35 +473,28 @@ function calculateABG() {
 
     if (pH < 7.35 && HCO3 < 22) {
 
-        const expectedPCO2 =
-            (1.5 * HCO3) + 8;
+        const [b, bScale] = winterDecimalRatio(document.getElementById("abgHCO3").value);
+        const [p, pScale] = winterDecimalRatio(document.getElementById("abgPCO2").value);
+        // Both bounds share the denominator 2*bScale: (3/2)*HCO3 + 8 ± 2.
+        const denominator = 2n * bScale;
+        const lower = 3n * b + 6n * denominator;
+        const upper = lower + 4n * denominator;
+        const measured = p * denominator;
 
-        const lower =
-            expectedPCO2 - 2;
-
-        const upper =
-            expectedPCO2 + 2;
-
-        // Show numeric bounds only when both are unchanged at three decimal places.
-        // The fallback gives the formula without publishing a rounded decision boundary.
-        const compactBounds = [lower, upper].every(bound =>
-            Number(bound.toFixed(3)) === bound
-        );
+        // A four-unit-wide interval has the same fractional part at both ends.
+        // Convert to Number for display only, after scaling to exact small integers.
+        const compactBounds = (lower * 1000n) % denominator === 0n;
+        const displayBound = n => Number(n * 1000n / denominator) / 1000;
         const expectedInterval = compactBounds
-            ? `Expected PaCO₂ interval ${lower}–${upper} mmHg (inclusive)`
+            ? `Expected PaCO₂ interval ${displayBound(lower)}–${displayBound(upper)} mmHg (inclusive)`
             : "Expected PaCO₂ by Winter’s formula: (1.5 × HCO₃⁻ + 8) ± 2 mmHg.";
 
-
-        if (
-            pCO2 >= lower &&
-            pCO2 <= upper
-        ) {
-
+        if (measured >= lower * pScale && measured <= upper * pScale) {
             compensation =
                 `Appropriate respiratory compensation. ${expectedInterval}`;
 
         }
-        else if (pCO2 < lower) {
+        else if (measured < lower * pScale) {
 
             compensation =
                 `Additional respiratory alkalosis. ${expectedInterval}`;
