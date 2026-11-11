@@ -470,9 +470,14 @@ function calculateABG() {
         const upper =
             expectedPCO2 + 2;
 
-        // Round-trip decimal bounds preserve the exact Number comparisons.
-        const expectedInterval =
-            `Expected PaCO₂ interval ${lower}–${upper} mmHg (inclusive)`;
+        // Show numeric bounds only when both are unchanged at three decimal places.
+        // The fallback gives the formula without publishing a rounded decision boundary.
+        const compactBounds = [lower, upper].every(bound =>
+            Number(bound.toFixed(3)) === bound
+        );
+        const expectedInterval = compactBounds
+            ? `Expected PaCO₂ interval ${lower}–${upper} mmHg (inclusive)`
+            : "Expected PaCO₂ by Winter’s formula: (1.5 × HCO₃⁻ + 8) ± 2 mmHg.";
 
 
         if (

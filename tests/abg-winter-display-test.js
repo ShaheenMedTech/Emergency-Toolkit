@@ -21,13 +21,19 @@ function calculate(hco3, pco2, expectedClassification) {
     assert.equal(alerts.length, 0);
     const text = elements.get("abgCompensation").textContent;
     const match = /^(.*?) Expected PaCO₂ interval ([\d.e+-]+)–([\d.e+-]+) mmHg \(inclusive\)$/.exec(text);
-    assert.ok(match, text);
-    assert.ok(!text.includes("±"), "Do not reconstruct an interval from a rounded midpoint");
-    const lower = Number(match[2]);
-    const upper = Number(match[3]);
-    const classificationFromDisplay = Number(pco2) < lower ? alkalosis : Number(pco2) > upper ? acidosis : appropriate;
-    assert.equal(match[1], classificationFromDisplay, "Displayed inclusive bounds must agree with raw classification");
-    if (expectedClassification) assert.equal(match[1], expectedClassification);
+    // Reproduce the existing binary bounds for the adjacent-value regression cases.
+    const midpoint = 1.5 * Number(hco3) + 8;
+    const lower = midpoint - 2;
+    const upper = midpoint + 2;
+    const classification = Number(pco2) < lower ? alkalosis : Number(pco2) > upper ? acidosis : appropriate;
+    if (match) {
+        assert.equal(Number(match[2]), lower);
+        assert.equal(Number(match[3]), upper);
+        assert.equal(match[1], classification);
+    } else {
+        assert.equal(text, classification + " Expected PaCO₂ by Winter’s formula: (1.5 × HCO₃⁻ + 8) ± 2 mmHg.");
+    }
+    if (expectedClassification) assert.equal(classification, expectedClassification);
     return { lower, upper, text };
 }
 const buffer = new ArrayBuffer(8);
@@ -68,7 +74,9 @@ assert.equal(calculate(15.1, 28.63, alkalosis).text,
     "Additional respiratory alkalosis. Expected PaCO₂ interval 28.65–32.65 mmHg (inclusive)");
 // Frozen pre-change classification fixtures: preserve binary arithmetic artifacts.
 calculate(21.9, 38.85, appropriate);
-calculate(21.9, 42.85, acidosis);
+assert.ok(calculate(21.9, 42.85, acidosis).text.includes("Winter’s formula"));
+assert.ok(calculate(15.25, 30, appropriate).text.includes("28.875–32.875"));
+assert.ok(calculate(12.3456789, 30).text.includes("Winter’s formula"));
 // Many accepted fractional inputs: check all categories against displayed bounds.
 for (const hco3 of [1.000000000001, 12.3456789, 15.100000000000001, 21.999999999999996]) {
     const { lower, upper } = calculate(hco3, 30);
