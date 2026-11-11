@@ -2,6 +2,12 @@
 
 All notable changes to Emergency Toolkit are documented here.
 
+## Unreleased
+
+- Clear stale calculator results after input changes and isolate ABG modal event handlers (#5).
+- Preserve small infusion rates and concentrations in the displayed result. The rate is labeled “Calculated infusion rate”; scientific rates use superscript exponents (#6).
+- Check calculator regressions and page structure in CI. The ABG anion gap regression checks raw and displayed values, invalid input recovery, and numerical boundaries (#4, #7).
+
 ## [1.0.0] — Clinical Reference & QA Release
 
 ### Clinical updates
