@@ -7,6 +7,9 @@ const production = {};
 vm.createContext(production);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "../js/calculators/infusions.js"), "utf8"), production);
 const format = production.formatInfusionValue;
+assert.equal(production.formatInfusionRate(1e-7), "1 × 10⁻⁷");
+assert.equal(production.formatInfusionRate(1.25e21), "1.25 × 10⁺²¹");
+assert.equal(production.formatInfusionRate(0.005), "0.005");
 
 // Independent exact-rational oracle: decode IEEE-754 bits and parse decimal text.
 // No production formatter or floating-point subtraction is used for error bounds.
