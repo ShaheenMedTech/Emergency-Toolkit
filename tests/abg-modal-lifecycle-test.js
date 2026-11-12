@@ -13,7 +13,7 @@ class Target {
     focus() { document.activeElement = this; }
     remove() { if (activeModal === this) activeModal = undefined; }
     querySelector(selector) { return selector === '[role="dialog"]' ? this : this.children.find(child => child.id === selector.slice(1)); }
-    querySelectorAll(selector) { return selector === "input" ? this.children.filter(child => ["abgPH", "abgPCO2", "abgHCO3", "abgPaO2", "abgNa", "abgCl"].includes(child.id)) : this.children.filter(child => ["closeABG", "calculateABG", "resetABG"].includes(child.id) || ["abgPH", "abgPCO2", "abgHCO3", "abgPaO2", "abgNa", "abgCl"].includes(child.id)); }
+    querySelectorAll(selector) { return selector === "input" ? this.children.filter(child => ["abgPH", "abgPCO2", "abgHCO3", "abgPaO2", "abgNa", "abgCl", "abgTotalCO2"].includes(child.id)) : this.children.filter(child => ["closeABG", "calculateABG", "resetABG"].includes(child.id) || ["abgPH", "abgPCO2", "abgHCO3", "abgPaO2", "abgNa", "abgCl", "abgTotalCO2"].includes(child.id)); }
     set innerHTML(html) { this.children = [...html.matchAll(/id="([^"]+)"/g)].map(match => new Target(match[1])); }
 }
 const document = new Target();
@@ -33,7 +33,7 @@ for (let cycle = 0; cycle < 20; cycle++) {
     const old = activeModal;
     const detachedReset = old.querySelector("#resetABG");
     assert.equal(keyCount(), 1);
-    assert.equal(ownedCount(old), 15, "All element listeners registered exactly once");
+    assert.equal(ownedCount(old), 17, "All element listeners registered exactly once");
     old.querySelector("#abgPH").focus();
     context.openABGCalculator();
     const current = activeModal;

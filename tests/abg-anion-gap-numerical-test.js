@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const { decimal, equal, gap, assertRawGap } = require("./helpers/abg-numerical-reference");
-const ids = ["abgPH", "abgPCO2", "abgHCO3", "abgPaO2", "abgNa", "abgCl"];
+const ids = ["abgPH", "abgPCO2", "abgHCO3", "abgPaO2", "abgNa", "abgCl", "abgTotalCO2"];
 const outputs = ["abgAG", "abgPrimary", "abgCompensation", "abgOxygen"];
 const elements = new Map([...ids, ...outputs].map(id => [id, { value: "", textContent: "—" }]));
 const alerts = [];
@@ -41,12 +41,12 @@ const vectors = [
     ["220", "40", "1", "179", 179, "179.0"],
     ["80", "180", "60", "-160", -160, "-160.0"]
 ];
-for (const [na, cl, hco3, exact, rawSnapshot, display] of vectors) {
-    const reference = gap(na, cl, hco3);
+for (const [na, cl, totalCO2, exact, rawSnapshot, display] of vectors) {
+    const reference = gap(na, cl, totalCO2);
     assert.ok(equal(reference, decimal(exact)), "Independent literal mathematical reference");
-    calculate(["7.4", "40", hco3, "80", na, cl]);
+    calculate(["7.4", "40", "24", "80", na, cl, totalCO2]);
     assert.equal(alerts.length, 0); assert.equal(observed.length, 1);
-    assertRawGap(observed[0], reference, [na, cl, hco3]);
+    assertRawGap(observed[0], reference, [na, cl, totalCO2]);
     assert.equal(observed[0], rawSnapshot, "Current binary snapshot — not exact arithmetic");
     assert.equal(elements.get("abgAG").textContent, display, "Current display snapshot — not approved rounding");
 }
@@ -56,20 +56,23 @@ assert.throws(() => assertRawGap(13.849999999999994 - 0.001, decimal("13.85"), [
 // Wide finite references exercise only the test oracle, never bypass production validation.
 assert.ok(equal(gap("1e308", "1e308", "5e-324"), decimal("-5e-324")));
 assert.ok(equal(gap("1e308", "0", "0"), decimal("1e308")));
-const valid = ["7.4", "40", "21.15", "80", "140", "105"];
+const valid = ["7.4", "40", "24", "80", "140", "105", "21.15"];
 let invalidCases = 0;
 for (let field = 0; field < ids.length; field++) {
     for (const invalid of ["", "NaN", "Infinity", "-Infinity", "not-a-number", "1e309", "1e308", "5e-324", "1e-324"]) {
         calculate(valid); assert.equal(observed.length, 1);
         const inputs = [...valid]; inputs[field] = invalid; calculate(inputs);
-        assert.equal(alerts.length, 1); assert.equal(observed.length, 0, "Invalid data never reaches gap formatter");
-        outputs.forEach(id => assert.equal(elements.get(id).textContent, "—", "Failure clears every prior result"));
+        const missingChemistry = field >= 4 && invalid === "";
+        assert.equal(alerts.length, missingChemistry ? 0 : 1);
+        assert.equal(observed.length, 0, "Incomplete or invalid data never reaches gap formatter");
+        if (missingChemistry) assert.match(elements.get("abgAG").textContent, /^Unavailable/);
+        else outputs.forEach(id => assert.equal(elements.get(id).textContent, "—"));
         assert.deepEqual(ids.map(id => elements.get(id).value), inputs);
         calculate(valid); assert.equal(elements.get("abgAG").textContent, "13.8"); invalidCases++;
     }
 }
 // Exact endpoints accepted; immediate exterior binary values rejected, including range ties.
-const ranges = [[6.5, 8], [5, 150], [1, 60], [1, 500], [80, 220], [40, 180]];
+const ranges = [[6.5, 8], [5, 150], [1, 60], [1, 500], [80, 220], [40, 180], [1, 60]];
 function neighbor(value, direction) {
     const view = new DataView(new ArrayBuffer(8)); view.setFloat64(0, value);
     view.setBigUint64(0, view.getBigUint64(0) + BigInt(direction)); return view.getFloat64(0);
@@ -82,4 +85,4 @@ for (let field = 0; field < ids.length; field++) {
         if (!accepted) outputs.forEach(id => assert.equal(elements.get(id).textContent, "—"));
     }
 }
-console.log(`PASS — ${vectors.length} independent gap vectors, binary/display snapshots, ${invalidCases} invalid/recovery transitions, 24 input boundaries and oracle sensitivity; numerical policies remain PENDING`);
+console.log(`PASS — ${vectors.length} independent gap vectors, binary/display snapshots, ${invalidCases} invalid/recovery transitions, 28 input boundaries and oracle sensitivity; numerical policies remain PENDING`);

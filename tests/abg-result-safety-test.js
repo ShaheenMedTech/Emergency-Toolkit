@@ -6,9 +6,9 @@ const vm = require("node:vm");
 const source = fs.readFileSync(path.join(__dirname, "../js/calculators/acid-base.js"), "utf8");
 const baseline = {
     abgPH: "7.30", abgPCO2: "30", abgHCO3: "15",
-    abgPaO2: "80", abgNa: "140", abgCl: "110"
+    abgPaO2: "80", abgNa: "140", abgCl: "110", abgTotalCO2: "22"
 };
-const changes = { abgPH: "7.50", abgPCO2: "60", abgHCO3: "18", abgPaO2: "50", abgNa: "142", abgCl: "108" };
+const changes = { abgPH: "7.50", abgPCO2: "60", abgHCO3: "18", abgPaO2: "50", abgNa: "142", abgCl: "108", abgTotalCO2: "24" };
 const outputs = ["abgAG", "abgPrimary", "abgCompensation", "abgOxygen"];
 const elements = new Map();
 const alerts = [];
@@ -61,6 +61,17 @@ const result = () => outputs.map(id => get(id).textContent);
 const cleared = () => assert.deepEqual(result(), outputs.map(() => "—"));
 const calculate = () => get("calculateABG").dispatch("click");
 const populated = () => assert.ok(result().every(value => value && value !== "—"));
+const chemistryIds = ["abgNa", "abgCl", "abgTotalCO2"];
+function checkMissing(id, previous) {
+    if (chemistryIds.includes(id)) {
+        assert.match(result()[0], /^Unavailable/);
+        assert.deepEqual(result().slice(1), previous.slice(1));
+        assert.equal(alerts.length, 0);
+    } else {
+        cleared();
+        assert.equal(alerts.length, 1);
+    }
+}
 let transitions = 0;
 for (const [id, changed] of Object.entries(changes)) for (const event of ["input", "change"]) {
     alerts.length = 0; set(baseline); calculate(); populated();
@@ -74,19 +85,36 @@ for (const [id, changed] of Object.entries(changes)) for (const event of ["input
     assert.notDeepEqual(result(), previous, "Explicit recalculation must use changed inputs");
     const updated = result();
     get(id).value = ""; get(id).dispatch(event); cleared();
-    calculate(); cleared(); assert.equal(alerts.length, 1);
+    calculate(); checkMissing(id, updated);
     assert.equal(get(id).value, "");
     get(id).value = changed; get(id).dispatch(event); cleared();
-    assert.equal(alerts.length, 1, "Correction alone must not calculate");
+    assert.equal(alerts.length, chemistryIds.includes(id) ? 0 : 1, "Correction alone must not calculate");
     calculate(); assert.deepEqual(result(), updated);
     transitions++;
 }
+set(baseline); calculate();
+const original = result();
+set({ abgTotalCO2: "25" }); calculate();
+assert.equal(result()[0], "5.0");
+assert.deepEqual(result().slice(1), original.slice(1));
+set({ abgHCO3: "18" }); calculate();
+assert.equal(result()[0], "5.0");
+assert.notEqual(result()[2], original[2]);
 // Keep invalid-recalculation clearing safe even when programmatic edits omit events.
 for (const id of Object.keys(baseline)) {
     set(baseline); calculate(); populated(); alerts.length = 0;
-    get(id).value = ""; calculate(); cleared(); assert.equal(alerts.length, 1);
+    const previous = result();
+    get(id).value = ""; calculate(); checkMissing(id, previous);
     set(baseline); calculate(); populated();
 }
+for (let mask = 1; mask < 8; mask++) {
+    set(baseline); calculate(); const previous = result();
+    chemistryIds.forEach((id, i) => { if (mask & (1 << i)) get(id).value = ""; });
+    alerts.length = 0; calculate(); checkMissing(chemistryIds[0], previous);
+}
+get("abgNa").validity = { badInput: true };
+calculate(); cleared(); assert.equal(alerts.length, 1);
+delete get("abgNa").validity;
 get("resetABG").dispatch("click"); cleared();
 assert.ok(Object.values(inputValues()).every(value => value === ""));
 set(baseline); calculate(); populated();
@@ -99,5 +127,5 @@ for (const id of Object.keys(baseline)) for (const event of ["input", "change"])
     get(id).value = changes[id]; get(id).dispatch(event); cleared();
     assert.equal(get(id).value, changes[id]);
 }
-assert.equal(transitions, 12);
-console.log("PASS — ABG all six inputs × both events: edit/invalid/corrected/recalculated transitions, input preservation, reset and reopen");
+assert.equal(transitions, 14);
+console.log("PASS — ABG all seven inputs × both events: edit/invalid/corrected/recalculated transitions, input preservation, reset and reopen");
