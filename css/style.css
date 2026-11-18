@@ -190,6 +190,21 @@ footer span {
     font-size: 0.75rem;
 }
 
+.developer-attribution {
+    margin-top: 16px;
+    color: var(--text);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.developer-attribution a {
+    display: inline-block;
+    padding: 8px 0;
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
 @media (max-width: 900px) {
     .card-grid {
         grid-template-columns: repeat(2, 1fr);
